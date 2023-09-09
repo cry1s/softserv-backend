@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Список программного обеспечения</title>
+    <link rel="stylesheet" type="text/css" href="/static/styles.css">
+    <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <header>
+        <h1>Список программного обеспечения</h1>
+    </header>
+    <div class="container">
+        <ul>
+            {{#each this}}
+                <li>{{name}} (Версия: {{version}})</li>
+            {{/each}}
+        </ul>
+    </div>
+</body>
+</html>
