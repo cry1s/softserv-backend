@@ -1,21 +1,54 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
+
 <head>
-    <meta charset="UTF-8">
-    <title>Список программного обеспечения</title>
-    <link rel="stylesheet" type="text/css" href="/static/styles.css">
-    <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon">
+    <meta charset="utf8" />
+    <meta name="viewport" content="width=device-width">
+    <title>Softserv</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap">
+    <link rel="stylesheet" type="text/css" href="static/styles.css">
+    <link rel="icon" href="static/favicon.ico">
 </head>
+
 <body>
-    <header>
-        <h1>Список программного обеспечения</h1>
+    <header class="logo">
+        <pre class="logo">
+   _____         ____ __  _____                   
+  / ___/ ____   / __// /_/ ___/ ___   _____ _   __
+  \__ \ / __ \ / /_ / __/\__ \ / _ \ / ___/| | / /
+ ___/ // /_/ // __// /_ ___/ //  __// /    | |/ / 
+/____/ \____//_/   \__//____/ \___//_/     |___/  
+                                                  
+    </pre>
     </header>
-    <div class="container">
-        <ul>
-            {{#each this}}
-                <li>{{name}} (Версия: {{version}})</li>
+    <main>
+        <section>
+            <p class="description">Lorem ipsum dolor sit amet consectetur adipisicing elit. Aliquid illum, dignissimos
+                vero nemo distinctio quo et reiciendis. Nam, natus? Consequatur, suscipit! Autem obcaecati, veniam
+                veritatis quas facilis corrupti omnis aliquam. Lorem ipsum dolor sit amet consectetur adipisicing elit.
+                Nisi nam laudantium aut, tempora alias quis repudiandae magni quae molestias? Ad repellat sed doloribus
+                consectetur iure cum doloremque consequatur reiciendis beatae?</p>
+        </section>
+        <section class="software-layout">
+            {{#each software_list}}
+            <div class="software-card">
+                <img class="software-logo" src="static/{{logo}}"/>
+                <h3 class="software-name">{{name}}</h3>
+                <p class="software-version">Версия: {{version}}</p>
+                <ul class="software-tags">
+                    {{#each tags}}<li>{{name}}</li>{{/each}}
+                </ul>
+                <p class="software-os">{{os}}</p>
+                <a href="/soft/{{id}}">Подробнее</a>
+            </div>
             {{/each}}
-        </ul>
-    </div>
+        </section>
+    </main>
+    <footer>
+
+    </footer>
 </body>
+
 </html>
