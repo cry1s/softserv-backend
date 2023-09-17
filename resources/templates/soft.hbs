@@ -1,0 +1,17 @@
+{{#*inline "page"}}
+<div class="software-details">
+    <img class="software-logo" src="/static/{{soft.logo}}" />
+    <h2 class="software-name">{{soft.name}}</h2>
+    <p class="software-version">Версия: {{soft.version}}</p>
+    <p class="software-description">{{soft.description}}</p>
+    <p class="software-os">Операционная система: {{soft.os}}</p>
+    <a href="{{soft.source}}">Источник</a>
+    <h3 class="software-tags-title">Теги:</h3>
+    <ul class="software-tags">
+        {{#each soft.tags}}
+        <li>{{name}}</li>
+        {{/each}}
+    </ul>
+</div>
+{{/inline}}
+{{> (lookup this "parent")}}

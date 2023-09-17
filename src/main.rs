@@ -8,10 +8,14 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(
                 softserv::init_handlebars()
             ))
+            .default_service(
+                web::route().to(softserv::not_found)
+            )
             .service(
                 fs::Files::new("/static", "./resources/static")
             )
             .service(softserv::index)
+            .service(softserv::soft)
     })
     .bind(("localhost", 8080))?
     .run()

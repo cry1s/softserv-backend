@@ -1,15 +1,18 @@
 {{#*inline "page"}}
 <section>
-    <p class="description">Lorem ipsum dolor sit amet consectetur adipisicing elit. Aliquid illum, dignissimos
-        vero nemo distinctio quo et reiciendis. Nam, natus? Consequatur, suscipit! Autem obcaecati, veniam
-        veritatis quas facilis corrupti omnis aliquam. Lorem ipsum dolor sit amet consectetur adipisicing elit.
-        Nisi nam laudantium aut, tempora alias quis repudiandae magni quae molestias? Ad repellat sed doloribus
-        consectetur iure cum doloremque consequatur reiciendis beatae?</p>
+    <p class="description">Мощное программное обеспечение для вашего сервера. Интуитивный интерфейс, высокая
+        производительность, надежность и безопасность. Поддержка экспертов. Обеспечьте успех своего бизнеса с нами!</p>
 </section>
+<div class="search-container">
+    <form action="/" method="GET">
+        <input type="search" name="q" placeholder="Поиск">
+        <button type="submit">Найти</button>
+    </form>
+</div>
 <section class="software-layout">
     {{#each software_list}}
     <div class="software-card">
-        <img class="software-logo" src="static/{{logo}}"/>
+        <img class="software-logo" src="static/{{logo}}" />
         <h3 class="software-name">{{name}}</h3>
         <p class="software-version">Версия: {{version}}</p>
         <ul class="software-tags">

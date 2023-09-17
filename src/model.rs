@@ -1,24 +1,6 @@
 use serde::Serialize;
 
-// Структура для представления данных о софте
-#[derive(Serialize)]
-pub struct Software {
-    id: i32,
-    name: String,
-    version: String,
-    description: String,
-    logo: String,
-    os: String,
-    source: String,
-    tags: Vec<Tag>,
-}
-
-#[derive(Serialize)]
-pub struct Tag {
-    name: String
-}
-
-pub fn get_software_list() -> Vec<Software> {
+fn get_all_soft() -> Vec<Software> {
     vec![
         Software {
             id: 0,
@@ -104,6 +86,38 @@ pub fn get_software_list() -> Vec<Software> {
                     name: String::from("tag10"),
                 },
             ],
-        }
+        },
     ]
+}
+
+// Структура для представления данных о софте
+#[derive(Serialize, Debug)]
+pub struct Software {
+    id: i32,
+    name: String,
+    version: String,
+    description: String,
+    logo: String,
+    os: String,
+    source: String,
+    tags: Vec<Tag>,
+}
+
+#[derive(Serialize, Debug)]
+pub struct Tag {
+    name: String,
+}
+
+pub fn get_soft_list(search: &str) -> Vec<Software> {
+    get_all_soft()
+        .into_iter()
+        .filter(|x| x.name.contains(search) || x.description.contains(search))
+        .collect()
+}
+
+pub(crate) fn get_soft_by_id(id: i32) -> Option<Software> {
+    get_all_soft()
+        .into_iter()
+        .filter(|soft| soft.id == id)
+        .next()
 }
