@@ -33,10 +33,10 @@ pub async fn not_found(hb: web::Data<Handlebars<'_>>) -> impl Responder {
 }
 
 #[get("/")]
-async fn index(hb: web::Data<Handlebars<'_>>, query: web::Query<IndexQuery>) -> impl Responder {
-    let search = query.q.as_ref().map_or("", |s| s.as_str());
-    let software_list = model::get_soft_list(search);
-    view::index(hb, software_list)
+async fn index(hb: web::Data<Handlebars<'_>>, mut query: web::Query<IndexQuery>) -> impl Responder {
+    let search = query.q.take().unwrap_or("".to_string());
+    let software_list = model::get_soft_list(&search);
+    view::index(hb, software_list, search)
 }
 
 #[get("/soft/{soft_id}")]

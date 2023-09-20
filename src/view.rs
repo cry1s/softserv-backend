@@ -17,8 +17,9 @@ impl Responsive for Result<String, RenderError> {
     }
 }
 
-pub(crate) fn index(hb: web::Data<Handlebars>, software_list: Vec<Software>) -> HttpResponse {
+pub(crate) fn index(hb: web::Data<Handlebars>, software_list: Vec<Software>, search_query: String) -> HttpResponse {
     hb.render("index", &json!({
+        "search_q": search_query,
         "parent": "layout",
         "software_list": software_list
     })).response()
