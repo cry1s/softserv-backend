@@ -2,7 +2,7 @@ use actix_web::{web, HttpResponse};
 use handlebars::{Handlebars, RenderError};
 use serde_json::json;
 
-use crate::model::Software;
+use crate::models::Software;
 
 trait Responsive {
     fn response(self) -> HttpResponse; 
@@ -28,7 +28,7 @@ pub(crate) fn index(hb: web::Data<Handlebars>, software_list: Vec<Software>, sea
 pub(crate) fn soft(hb: web::Data<Handlebars>, soft: Software) -> HttpResponse {
     hb.render("soft", &json!({
         "parent": "layout",
-        "soft": dbg!(soft)
+        "soft": soft
     })).response()
 }
 
