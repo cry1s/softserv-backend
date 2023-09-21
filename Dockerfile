@@ -7,9 +7,8 @@
 ################################################################################
 # Create a stage for building the application.
 
-ARG RUST_VERSION=1.72.1
 ARG APP_NAME=softserv
-FROM rust:${RUST_VERSION}-slim-bullseye AS build
+FROM rust:latest AS build
 ARG APP_NAME
 WORKDIR /app
 
