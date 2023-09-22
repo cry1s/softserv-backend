@@ -9,6 +9,7 @@ edition = "2021"
 actix-files = "0.6.2"
 actix-web = "4.4.0"
 diesel = { version = "2.1.1", features = ["postgres"] }
+diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }
 dotenvy = "0.15.7"
 handlebars = "4.4.0"
 serde = { version = "1.0.188", features = ["derive"]}
