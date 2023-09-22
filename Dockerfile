@@ -41,8 +41,8 @@ EOF
 # most recent version of that tag when you build your Dockerfile. If
 # reproducability is important, consider using a digest
 # (e.g., debian@sha256:ac707220fbd7b67fc19b112cee8170b41a9e97f703f588b2cdbbcdcecdd8af57).
-FROM debian:bullseye-slim AS final
-
+FROM rust:latest AS final
+# RUN apt-get update && apt-get install -y libpq5 libc6 && apt-get install --only-upgrade libc6 && rm -rf /var/lib/apt/lists/* 
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#user
 ARG UID=10001
@@ -64,4 +64,4 @@ COPY ./resources ./resources
 EXPOSE 8080
 
 # What the container should run when it is started.
-CMD ["/bin/server"]
+CMD ["./bin/server"]
