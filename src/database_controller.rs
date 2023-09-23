@@ -1,18 +1,25 @@
 use std::env;
 
-use diesel::{PgConnection, Connection, prelude::*};
+use diesel::{prelude::*, PgConnection};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use dotenvy::dotenv;
 
 use crate::models::Software;
 
+const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
+
 pub struct Database {
-    conn: PgConnection,
+    connection: PgConnection,
 }
 
 impl Database {
     pub fn new() -> Self {
         Self {
-            conn: establish_connection(),
+            connection: {
+                let mut connection = establish_connection();
+                connection.run_pending_migrations(MIGRATIONS).unwrap();
+                connection
+            },
         }
     }
 
@@ -21,7 +28,7 @@ impl Database {
         softwares
             .filter(active.eq(true))
             .select(Software::as_select())
-            .load(&mut self.conn)
+            .load(&mut self.connection)
             .unwrap()
     }
 
@@ -29,9 +36,8 @@ impl Database {
         use crate::schema::softwares::dsl::softwares;
         softwares
             .find(id)
-            .get_result::<Software>(&mut self.conn)
+            .get_result::<Software>(&mut self.connection)
             .ok()
-        
     }
 }
 
@@ -39,6 +45,11 @@ fn establish_connection() -> PgConnection {
     dotenv().ok();
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    PgConnection::establish(&database_url)
-        .unwrap_or_else(|e| panic!("Error connecting to {}, {}", database_url, e.to_string()))
+    PgConnection::establish(&database_url).unwrap_or_else(|e| {
+        panic!(
+            "Error connectionecting to {}, {}",
+            database_url,
+            e.to_string()
+        )
+    })
 }
