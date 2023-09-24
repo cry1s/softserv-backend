@@ -1,10 +1,13 @@
 use std::sync::Mutex;
 
-use actix_web::{get, web, Responder};
+use actix_web::{get, web, Responder, HttpResponse};
 use handlebars::Handlebars;
 use serde::Deserialize;
 
-use crate::{database_controller::Database, models::{db_types::Software, web_types::SoftwareCard}};
+use crate::{
+    database_controller::Database,
+    models::{db_types::Software, web_types::SoftwareCard},
+};
 
 pub mod database_controller;
 pub mod models;
@@ -59,9 +62,8 @@ async fn index(
 
     view::index(hb, software_list, search)
 }
-
 #[get("/soft/{soft_id}")]
-async fn soft_page(
+pub async fn get_soft(
     hb: web::Data<Handlebars<'_>>,
     pool: web::Data<Mutex<Database>>,
     path: web::Path<(i32,)>,
@@ -73,4 +75,14 @@ async fn soft_page(
         None => view::not_found(hb),
     };
     answ
+}
+
+#[get("/delete_soft/{soft_id}")]
+pub async fn delete_soft(
+    pool: web::Data<Mutex<Database>>,
+    path: web::Path<(i32,)>,
+) -> impl Responder {
+    let (id,) = path.into_inner();
+    pool.lock().unwrap().delete_software(id);
+    HttpResponse::TemporaryRedirect().append_header(("Location", "/")).finish()
 }

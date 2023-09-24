@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use actix_web::{web, App, HttpServer};
 use actix_files as fs;
-use softserv::database_controller::Database;
+use softserv::{database_controller::Database, index, get_soft, delete_soft};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -20,8 +20,10 @@ async fn main() -> std::io::Result<()> {
             .service(
                 fs::Files::new("/static", "./resources/static")
             )
-            .service(softserv::index)
-            .service(softserv::soft_page)
+            .service(index)
+            .service(get_soft)
+            .service(delete_soft)
+            
     })
     .bind(("0.0.0.0", 8080))?
     .run()

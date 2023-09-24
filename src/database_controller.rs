@@ -1,6 +1,6 @@
 use std::env;
 
-use diesel::{prelude::*, PgConnection};
+use diesel::{prelude::*, PgConnection, sql_query};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use dotenvy::dotenv;
 
@@ -59,6 +59,12 @@ impl Database {
         .select(Tag::as_select())
         .load(&mut self.connection)
         .unwrap()
+    }
+
+    pub fn delete_software(&mut self, soft_id: i32) {
+        sql_query(format!("UPDATE softwares SET active=false WHERE id={}", soft_id))
+        .execute(&mut self.connection)
+        .unwrap();
     }
 }
 

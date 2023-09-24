@@ -14,12 +14,14 @@
     <div class="software-card">
         <img class="software-logo" src="{{logo}}" />
         <h3 class="software-name">{{name}}</h3>
-        <p class="software-description">{{description}}</h3>
+        <p class="software-description">{{description}}</p>
         <p class="software-version">Версия: {{version}}</p>
         <ul class="software-tags">
             {{#each tags}}<li>{{name}}</li>{{/each}}
         </ul>
         <a href="/soft/{{id}}">Подробнее</a>
+        </hr>
+        <a href="/delete_soft/{{id}}"><button>Удалить</button></a>
     </div>
     {{/each}}
 </section>
