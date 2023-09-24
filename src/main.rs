@@ -21,9 +21,10 @@ async fn main() -> std::io::Result<()> {
                 fs::Files::new("/static", "./resources/static")
             )
             .service(softserv::index)
-            .service(softserv::soft)
+            .service(softserv::soft_page)
     })
     .bind(("0.0.0.0", 8080))?
     .run()
     .await
+    
 }

@@ -4,12 +4,12 @@ use actix_web::{get, web, Responder};
 use handlebars::Handlebars;
 use serde::Deserialize;
 
-use crate::{models::Software, database_controller::Database};
+use crate::{database_controller::Database, models::{db_types::Software, web_types::SoftwareCard}};
 
+pub mod database_controller;
 pub mod models;
 pub mod schema;
-pub mod database_controller;
-mod view;
+pub mod view;
 
 pub fn init_handlebars() -> Handlebars<'static> {
     let msg = "Failed to register template";
@@ -45,23 +45,32 @@ async fn index(
     mut query: web::Query<IndexQuery>,
 ) -> impl Responder {
     let search = query.q.take().unwrap_or("".to_string());
-
-    let software_list = pool.lock().unwrap().get_all_softwares();
+    let software_list = {
+        if search.len() > 0 {
+            pool.lock().unwrap().get_softwares_by_name(&search)
+        } else {
+            pool.lock().unwrap().get_all_active_softwares()
+        }
+    };
+    let software_list = software_list
+        .into_iter()
+        .map(|software| SoftwareCard::new(software, pool.clone()))
+        .collect();
 
     view::index(hb, software_list, search)
 }
 
 #[get("/soft/{soft_id}")]
-async fn soft(
+async fn soft_page(
     hb: web::Data<Handlebars<'_>>,
     pool: web::Data<Mutex<Database>>,
-    path: web::Path<(i32,)>
+    path: web::Path<(i32,)>,
 ) -> impl Responder {
     let (id,) = path.into_inner();
     let soft: Option<Software> = pool.lock().unwrap().get_software_by_id(id);
     let answ = match soft {
-        Some(soft) => view::soft(hb, soft),
-        None => view::not_found(hb)
+        Some(soft) => view::soft(hb, SoftwareCard::new(soft, pool)),
+        None => view::not_found(hb),
     };
     answ
 }

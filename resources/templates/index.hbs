@@ -12,13 +12,13 @@
 <section class="software-layout">
     {{#each software_list}}
     <div class="software-card">
-        <img class="software-logo" src="static/{{logo}}" />
+        <img class="software-logo" src="{{logo}}" />
         <h3 class="software-name">{{name}}</h3>
+        <p class="software-description">{{description}}</h3>
         <p class="software-version">Версия: {{version}}</p>
         <ul class="software-tags">
             {{#each tags}}<li>{{name}}</li>{{/each}}
         </ul>
-        <p class="software-os">{{os}}</p>
         <a href="/soft/{{id}}">Подробнее</a>
     </div>
     {{/each}}

@@ -9,10 +9,10 @@ services:
     ports:
       - 8080:8080
     depends_on:
-      - database
+      - db
     environment:
       - DATABASE_URL=${DATABASE_URL}
-  database:
+  db:
     image: postgres:16-alpine
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
@@ -27,4 +27,4 @@ services:
     ports:
       - "5000:8080"
     depends_on:
-      - database
+      - db
