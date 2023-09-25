@@ -10,7 +10,7 @@ CREATE TABLE users (
 
 CREATE TABLE connection_infos (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL REFERENCES users(id),
     ssh VARCHAR NOT NULL,
     password VARCHAR NOT NULL,
     valid BOOLEAN NOT NULL,
