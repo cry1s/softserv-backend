@@ -19,17 +19,16 @@ input[type="search"] {
   align-items: center;
 }
 
-button[type="submit"] {
+button {
   padding: 10px 20px;
   background-color: #333;
   color: #fff;
   border: none;
   border-radius: 4px;
-  margin-left: 10px;
   cursor: pointer;
 }
 
-button[type="submit"]:hover {
+button:hover {
   background-color: #555;
 }
 
