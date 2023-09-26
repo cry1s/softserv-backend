@@ -37,7 +37,7 @@ impl SoftwareCard {
                     "/static/default_logo.png".to_string()
                 } else {
                     let logo = db_soft.logo.unwrap();
-                    format!("data:image/png;base64, {}", general_purpose::STANDARD.encode(&logo))
+                    format!("data:image/png;base64, {}", general_purpose::STANDARD.encode(logo))
                 }
             },
         }

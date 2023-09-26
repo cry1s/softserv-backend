@@ -76,7 +76,7 @@ fn establish_connection() -> PgConnection {
         panic!(
             "Error connecting to {}, {}",
             database_url,
-            e.to_string()
+            e
         )
     })
 }

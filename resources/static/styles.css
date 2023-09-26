@@ -19,6 +19,7 @@ input[type="search"] {
   align-items: center;
 }
 
+input[type="submit"],
 button {
   padding: 10px 20px;
   background-color: #333;

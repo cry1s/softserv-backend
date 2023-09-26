@@ -21,7 +21,16 @@
         </ul>
         <a href="/soft/{{id}}">Подробнее</a>
         </hr>
-        <a href="/delete_soft/{{id}}"><button>Удалить</button></a>
+            <input type="hidden" name="soft_id" id="soft_id" value="{{id}}">
+            <input type="submit" class="button" value="Удалить">
+        </form>
+        <script>
+        function deleteSoft(event) {
+            event.preventDefault(); // Prevent the default form submission
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/delete_soft/", true); // todo
+        }
+        </script>
     </div>
     {{/each}}
 </section>

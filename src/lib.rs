@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use actix_web::{get, web, Responder, HttpResponse};
+use actix_web::{get, web, Responder, HttpResponse, post, http::header};
 use handlebars::Handlebars;
 use serde::Deserialize;
 
@@ -49,7 +49,7 @@ async fn index(
 ) -> impl Responder {
     let search = query.q.take().unwrap_or("".to_string());
     let software_list = {
-        if search.len() > 0 {
+        if !search.is_empty() {
             pool.lock().unwrap().get_softwares_by_name(&search)
         } else {
             pool.lock().unwrap().get_all_active_softwares()
@@ -70,19 +70,22 @@ pub async fn get_soft(
 ) -> impl Responder {
     let (id,) = path.into_inner();
     let soft: Option<Software> = pool.lock().unwrap().get_software_by_id(id);
-    let answ = match soft {
+    match soft {
         Some(soft) => view::soft(hb, SoftwareCard::new(soft, pool)),
         None => view::not_found(hb),
-    };
-    answ
+    }
 }
 
-#[get("/delete_soft/{soft_id}")]
+#[derive(Deserialize)]
+pub struct DeleteSoftPayload {
+    soft_id: i32,
+}
+
+#[post("/delete_soft/")]
 pub async fn delete_soft(
     pool: web::Data<Mutex<Database>>,
-    path: web::Path<(i32,)>,
+    payload: web::Json<DeleteSoftPayload>
 ) -> impl Responder {
-    let (id,) = path.into_inner();
-    pool.lock().unwrap().delete_software(id);
-    HttpResponse::TemporaryRedirect().append_header(("Location", "/")).finish()
+    pool.lock().unwrap().delete_software(payload.soft_id);
+    HttpResponse::Ok()
 }
