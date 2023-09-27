@@ -72,11 +72,15 @@ fn establish_connection() -> PgConnection {
     dotenv().ok();
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    PgConnection::establish(&database_url).unwrap_or_else(|e| {
-        panic!(
-            "Error connecting to {}, {}",
-            database_url,
-            e
-        )
-    })
+    match PgConnection::establish(&database_url) {
+        Ok(conn) => conn,
+        Err(e) => {
+            // replacing hostname with localhost
+            eprintln!("{}", e);
+            let a_sign = database_url.find('@').unwrap();
+            let b_sign = database_url[a_sign..].find('/').unwrap() + database_url[..a_sign].len();
+            let localhost = format!("{}@{}{}", &database_url[..a_sign], "localhost", &database_url[b_sign..]);
+            PgConnection::establish(&localhost).unwrap()
+        },
+    }
 }
