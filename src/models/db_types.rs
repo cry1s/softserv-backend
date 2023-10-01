@@ -26,31 +26,14 @@ pub enum SoftwareStatus {
 }
 
 #[derive(Debug, Selectable, Queryable)]
-#[diesel(table_name = crate::schema::connection_infos)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct ConnectionInfo {
-    id: i32,
-    user_id: i32,
-    ssh: String,
-    password: String,
-    valid: bool,
-    created_at: SystemTime,
-    updated_at: SystemTime,
-}
-
-#[derive(Debug, Selectable, Queryable)]
 #[diesel(table_name = crate::schema::requests)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Request {
     id: i32,
     user_id: i32,
     moderator_id: Option<i32>,
-    connection_info: i32,
     status: RequestStatus,
     created_at: SystemTime,
-    updated_at: SystemTime,
-    canceled_at: Option<SystemTime>,
-    deleted_at: Option<SystemTime>,
     processed_at: Option<SystemTime>,
     completed_at: Option<SystemTime>,
 }
@@ -65,8 +48,6 @@ pub struct RequestSoftware {
     software_id: i32,
     request_id: i32,
     to_install: bool,
-    port: i32,
-    port_valid: Option<bool>,
     status: SoftwareStatus,
     created_at: SystemTime,
     updated_at: SystemTime,
@@ -77,14 +58,12 @@ pub struct RequestSoftware {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Software {
     pub id: i32,
+    pub description: String,
+    pub logo: Option<String>,
+    pub active: bool,
     pub name: String,
     pub version: String,
-    pub description: String,
-    pub logo: Option<Vec<u8>>,
     pub source: String,
-    pub active: bool,
-    pub installation_script: Option<String>,
-    pub deletion_script: Option<String>,
     pub created_at: SystemTime,
     pub updated_at: SystemTime,
 }
