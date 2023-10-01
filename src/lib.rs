@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use actix_web::{get, web, Responder, HttpResponse, post, http::header};
+use actix_web::{get, web, Responder, HttpResponse, post};
 use handlebars::Handlebars;
 use serde::Deserialize;
 
