@@ -39,12 +39,12 @@ pub struct Request {
 }
 
 #[derive(Identifiable, Debug, Selectable, Queryable, Associations)]
+#[diesel(primary_key(software_id, request_id))]
 #[diesel(belongs_to(Software))]
 #[diesel(belongs_to(Request))]
 #[diesel(table_name = crate::schema::requests_softwares)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct RequestSoftware {
-    id: i32,
     software_id: i32,
     request_id: i32,
     to_install: bool,
@@ -69,12 +69,12 @@ pub struct Software {
 }
 
 #[derive(Identifiable, Debug, Selectable, Queryable, Associations)]
+#[diesel(primary_key(software_id, tag_id))]
 #[diesel(belongs_to(Software))]
 #[diesel(belongs_to(Tag))]
 #[diesel(table_name = crate::schema::softwares_tags)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct SoftwareTag {
-    id: i32,
     software_id: i32,
     tag_id: i32,
     created_at: SystemTime,

@@ -31,8 +31,7 @@ diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::SoftStatusEnum;
 
-    requests_softwares (id) {
-        id -> Int4,
+    requests_softwares (software_id, request_id) {
         software_id -> Int4,
         request_id -> Int4,
         to_install -> Bool,
@@ -57,8 +56,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    softwares_tags (id) {
-        id -> Int4,
+    softwares_tags (software_id, tag_id) {
         software_id -> Int4,
         tag_id -> Int4,
         created_at -> Timestamp,

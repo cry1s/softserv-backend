@@ -17,13 +17,7 @@ pub struct Database {
 
 impl Database {
     pub fn new() -> Self {
-        Self {
-            connection: {
-                let mut connection = establish_connection();
-                connection.run_pending_migrations(MIGRATIONS).unwrap();
-                connection
-            },
-        }
+        Database::default()
     }
 
     pub fn get_all_active_softwares(&mut self) -> Vec<Software> {
@@ -82,5 +76,17 @@ fn establish_connection() -> PgConnection {
             let localhost = format!("{}@{}{}", &database_url[..a_sign], "localhost", &database_url[b_sign..]);
             PgConnection::establish(&localhost).unwrap()
         },
+    }
+}
+
+impl Default for Database {
+    fn default() -> Self {
+        Self {
+            connection: {
+                let mut connection = establish_connection();
+                connection.run_pending_migrations(MIGRATIONS).unwrap();
+                connection
+            },
+        }
     }
 }

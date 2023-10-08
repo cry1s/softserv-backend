@@ -47,21 +47,19 @@ CREATE TABLE tags (
 CREATE TYPE soft_status_enum AS ENUM ('new', 'processed', 'completed', 'failed', 'canceled');
 
 CREATE TABLE requests_softwares (
-    id SERIAL PRIMARY KEY,
     software_id INTEGER NOT NULL REFERENCES softwares(id),
     request_id INTEGER NOT NULL REFERENCES requests(id),
     to_install BOOLEAN NOT NULL,
     status soft_status_enum NOT NULL,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,
-
-    UNIQUE (software_id, request_id)
+    PRIMARY KEY (software_id, request_id)
 );
 
 CREATE TABLE softwares_tags (
-    id SERIAL PRIMARY KEY,
     software_id INTEGER NOT NULL REFERENCES softwares(id),
     tag_id INTEGER NOT NULL REFERENCES tags(id),
     created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL
+    updated_at TIMESTAMP NOT NULL,
+    PRIMARY KEY (software_id, tag_id)
 );
