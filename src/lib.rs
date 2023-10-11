@@ -13,6 +13,7 @@ pub mod database_controller;
 pub mod models;
 pub mod schema;
 pub mod view;
+pub mod methods;
 
 pub fn init_handlebars() -> Handlebars<'static> {
     let msg = "Failed to register template";

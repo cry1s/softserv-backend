@@ -3,6 +3,7 @@ use std::sync::Mutex;
 use actix_web::{web, App, HttpServer, middleware::Logger};
 use actix_files as fs;
 use softserv::{database_controller::Database, index, get_soft, delete_soft};
+use softserv::methods::requests::all_requests;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -25,6 +26,7 @@ async fn main() -> std::io::Result<()> {
             .service(index)
             .service(get_soft)
             .service(delete_soft)
+            .route("/all_requests", web::get().to(all_requests))
             
     })
     .bind(("0.0.0.0", 8080))?

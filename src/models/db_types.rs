@@ -5,7 +5,7 @@ use diesel::prelude::*;
 use diesel_derive_enum::DbEnum;
 use serde::Serialize;
 
-#[derive(Debug, DbEnum, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, DbEnum, Clone, Copy, PartialEq, Eq, Serialize)]
 #[ExistingTypePath = "crate::schema::sql_types::RequestStatusEnum"]
 pub enum RequestStatus {
     Created,
@@ -25,7 +25,7 @@ pub enum SoftwareStatus {
     Failed,
 }
 
-#[derive(Debug, Selectable, Queryable)]
+#[derive(Debug, Selectable, Queryable, Serialize)]
 #[diesel(table_name = crate::schema::requests)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Request {
@@ -33,6 +33,8 @@ pub struct Request {
     user_id: i32,
     moderator_id: Option<i32>,
     status: RequestStatus,
+    ssh_address: Option<String>,
+    ssh_password: Option<String>,
     created_at: SystemTime,
     processed_at: Option<SystemTime>,
     completed_at: Option<SystemTime>,
