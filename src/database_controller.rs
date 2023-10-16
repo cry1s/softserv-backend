@@ -4,6 +4,7 @@ use std::time::SystemTime;
 use diesel::{prelude::*, PgConnection, sql_query};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use dotenvy::dotenv;
+use serde::Deserialize;
 
 use crate::{
     models::db_types::Tag,
@@ -82,6 +83,7 @@ impl Database {
     }
 }
 
+#[derive(Deserialize)]
 pub struct RequestFilter {
     pub status: Option<RequestStatus>,
     pub create_date_start: Option<SystemTime>,

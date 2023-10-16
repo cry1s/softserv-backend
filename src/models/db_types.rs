@@ -3,9 +3,9 @@ use std::time::SystemTime;
 use diesel::prelude::*;
 
 use diesel_derive_enum::DbEnum;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, DbEnum, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, DbEnum, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[ExistingTypePath = "crate::schema::sql_types::RequestStatusEnum"]
 pub enum RequestStatus {
     Created,
