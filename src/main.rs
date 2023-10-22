@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use actix_web::{web, App, HttpServer, middleware::Logger, Responder, get, post, HttpResponse};
+use actix_web::{App, get, HttpResponse, HttpServer, middleware::Logger, post, Responder, web};
 use actix_files as fs;
 use handlebars::Handlebars;
 use serde::Deserialize;
@@ -17,7 +17,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(Logger::default())
             .app_data(web::Data::new(
-                init_handlebars()
+                view::init_handlebars()
             ))
             .app_data(web::Data::new(
                 Mutex::new(Database::new())
@@ -45,24 +45,6 @@ pub mod models;
 pub mod schema;
 pub mod view;
 pub mod methods;
-
-pub fn init_handlebars() -> Handlebars<'static> {
-    let msg = "Failed to register template";
-    let mut handlebars = Handlebars::new();
-    handlebars
-        .register_template_file("index", "resources/templates/index.hbs")
-        .expect(msg);
-    handlebars
-        .register_template_file("layout", "resources/templates/layout.hbs")
-        .expect(msg);
-    handlebars
-        .register_template_file("404", "resources/templates/404.hbs")
-        .expect(msg);
-    handlebars
-        .register_template_file("soft", "resources/templates/soft.hbs")
-        .expect(msg);
-    handlebars
-}
 
 #[derive(Deserialize)]
 struct IndexQuery {

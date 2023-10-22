@@ -1,4 +1,4 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{HttpResponse, web};
 use handlebars::{Handlebars, RenderError};
 use serde_json::json;
 
@@ -39,4 +39,21 @@ pub(crate) fn not_found(hb: web::Data<Handlebars<'_>>) -> HttpResponse {
         Ok(body) => HttpResponse::NotFound().body(body),
         Err(err) => HttpResponse::InternalServerError().body(err.to_string())
     }
+}
+pub fn init_handlebars() -> Handlebars<'static> {
+    let msg = "Failed to register template";
+    let mut handlebars = Handlebars::new();
+    handlebars
+        .register_template_file("index", "resources/templates/index.hbs")
+        .expect(msg);
+    handlebars
+        .register_template_file("layout", "resources/templates/layout.hbs")
+        .expect(msg);
+    handlebars
+        .register_template_file("404", "resources/templates/404.hbs")
+        .expect(msg);
+    handlebars
+        .register_template_file("soft", "resources/templates/soft.hbs")
+        .expect(msg);
+    handlebars
 }
