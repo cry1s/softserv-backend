@@ -18,11 +18,11 @@ pub enum RequestStatus {
 #[derive(Debug, DbEnum, Clone, Copy, PartialEq, Eq)]
 #[ExistingTypePath = "crate::schema::sql_types::SoftStatusEnum"]
 pub enum SoftwareStatus {
-    InQueue,
-    Auto,
-    Manual,
+    New,
+    Processed,
     Completed,
     Failed,
+    Canceled,
 }
 
 #[derive(Debug, Selectable, Queryable, Serialize)]
@@ -55,7 +55,7 @@ pub struct RequestSoftware {
     updated_at: SystemTime,
 }
 
-#[derive(Identifiable, Debug, Selectable, Queryable)]
+#[derive(Identifiable, Debug, Selectable, Queryable, Serialize)]
 #[diesel(table_name = crate::schema::softwares)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Software {

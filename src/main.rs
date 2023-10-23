@@ -5,8 +5,9 @@ use actix_files as fs;
 use handlebars::Handlebars;
 use serde::Deserialize;
 use database_controller::Database;
-use methods::requests::all_requests;
+use methods::requests::get_all_requests;
 use crate::methods::others::not_found;
+use crate::methods::softwares::SoftwareFilter;
 use crate::models::db_types::Software;
 use crate::models::web_types::SoftwareCard;
 
@@ -31,7 +32,7 @@ async fn main() -> std::io::Result<()> {
             .service(index)
             .service(get_soft)
             .service(delete_soft)
-            .route("/all_requests", web::get().to(all_requests))
+            .route("/all_requests", web::get().to(get_all_requests))
             
     })
     .bind(("0.0.0.0", 8080))?
@@ -62,7 +63,9 @@ async fn index(
         if !search.is_empty() {
             pool.lock().unwrap().get_softwares_by_name(&search)
         } else {
-            pool.lock().unwrap().get_all_active_softwares()
+            pool.lock().unwrap().get_all_active_softwares(SoftwareFilter {
+                search: None
+            })
         }
     };
     let software_list = software_list

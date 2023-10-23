@@ -1,16 +1,13 @@
-use std::env;
-use std::time::SystemTime;
-
-use diesel::{prelude::*, PgConnection, sql_query};
+use crate::methods::requests::RequestFilter;
+use crate::methods::requests::RequestWithSoftwares;
+use crate::methods::softwares::SoftwareFilter;
+use crate::models::db_types::Request;
+use crate::models::db_types::Tag;
+use crate::Software;
+use diesel::{prelude::*, sql_query, PgConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use dotenvy::dotenv;
-use serde::Deserialize;
-
-use crate::{
-    models::db_types::Tag,
-    Software, schema::tags,
-};
-use crate::models::db_types::{Request, RequestStatus};
+use std::env;
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
@@ -23,13 +20,22 @@ impl Database {
         Database::default()
     }
 
-    pub fn get_all_active_softwares(&mut self) -> Vec<Software> {
-        use crate::schema::softwares::dsl::*;
-        softwares
-            .filter(active.eq(true))
-            .select(Software::as_select())
-            .load(&mut self.connection)
-            .unwrap()
+    pub fn get_all_active_softwares(&mut self, filter: SoftwareFilter) -> Vec<Software> {
+        use crate::schema::{softwares, softwares_tags, tags};
+        let mut query = softwares::dsl::softwares.into_boxed();
+        if let Some(search) = filter.search {
+            let software_ids = softwares_tags::dsl::softwares_tags
+                .inner_join(tags::dsl::tags.on(tags::id.eq(softwares_tags::tag_id)))
+                .filter(tags::name.like(format!("%{}%", search)))
+                .select(softwares_tags::software_id);
+
+            use crate::schema::softwares::name;
+            query = query.filter(
+                name.like(format!("%{}%", search))
+                    .or(softwares::dsl::id.eq_any(software_ids)),
+            )
+        };
+        query.load(&mut self.connection).unwrap()
     }
 
     pub fn get_softwares_by_name(&mut self, query: &str) -> Vec<Software> {
@@ -51,15 +57,20 @@ impl Database {
 
     pub fn get_tags_by_software(&mut self, soft_id: i32) -> Vec<Tag> {
         use crate::schema::softwares_tags::dsl::*;
-        softwares_tags.filter(software_id.eq(soft_id))
-        .inner_join(tags::table)
-        .select(Tag::as_select())
-        .load(&mut self.connection)
-        .unwrap()
+        use crate::schema::tags;
+        softwares_tags
+            .filter(software_id.eq(soft_id))
+            .inner_join(tags::table)
+            .select(Tag::as_select())
+            .load(&mut self.connection)
+            .unwrap()
     }
 
     pub fn delete_software(&mut self, soft_id: i32) {
-        sql_query(format!("UPDATE softwares SET active=false WHERE id={}", soft_id))
+        sql_query(format!(
+            "UPDATE softwares SET active=false WHERE id={}",
+            soft_id
+        ))
         .execute(&mut self.connection)
         .unwrap();
     }
@@ -81,13 +92,27 @@ impl Database {
         }
         query.load(&mut self.connection).unwrap()
     }
-}
+    
+    pub fn get_softwares_by_request(request: Request) -> Vec<Software> {
+        vec![]
+    }
 
-#[derive(Deserialize)]
-pub struct RequestFilter {
-    pub status: Option<RequestStatus>,
-    pub create_date_start: Option<SystemTime>,
-    pub create_date_end: Option<SystemTime>
+    pub fn get_request(&mut self, request_id: i32) -> Option<RequestWithSoftwares> {
+        use crate::schema::requests::dsl::*;
+        let request: Option<Request> = requests
+            .find(request_id)
+            .get_result::<Request>(&mut self.connection)
+            .ok();
+
+        request.map(|req| {
+            RequestWithSoftwares {
+                request: req,
+                softwares: {
+                    vec![]
+                },
+            }
+        })
+    }
 }
 
 fn establish_connection() -> PgConnection {
@@ -101,9 +126,14 @@ fn establish_connection() -> PgConnection {
             eprintln!("{}", e);
             let a_sign = database_url.find('@').unwrap();
             let b_sign = database_url[a_sign..].find('/').unwrap() + database_url[..a_sign].len();
-            let localhost = format!("{}@{}{}", &database_url[..a_sign], "localhost", &database_url[b_sign..]);
+            let localhost = format!(
+                "{}@{}{}",
+                &database_url[..a_sign],
+                "localhost",
+                &database_url[b_sign..]
+            );
             PgConnection::establish(&localhost).unwrap()
-        },
+        }
     }
 }
 
