@@ -66,6 +66,27 @@ pub(crate) struct InsertSoftware {
     pub(crate) source: String,
 }
 
+#[derive(Deserialize, AsChangeset)]
+#[diesel(table_name = crate::schema::softwares)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub(crate) struct OptionInsertSoftware {
+    pub(crate) description: Option<String>,
+    pub(crate) version: Option<String>,
+    pub(crate) active: Option<bool>,
+    pub(crate) name: Option<String>,
+    pub(crate) source: Option<String>,
+}
+
+impl OptionInsertSoftware {
+    pub(crate) fn any_none(&self) -> bool {
+        self.description.is_none() || self.active.is_none() || self.name.is_none() || self.version.is_none() || self.source.is_none()
+    }
+
+    pub(crate) fn all_none(&self) -> bool {
+        self.description.is_none() && self.active.is_none() && self.name.is_none() && self.version.is_none() && self.source.is_none()
+    }
+}
+
 #[derive(Identifiable, Debug, Selectable, Queryable, Serialize)]
 #[diesel(table_name = crate::schema::softwares)]
 #[diesel(check_for_backend(diesel::pg::Pg))]

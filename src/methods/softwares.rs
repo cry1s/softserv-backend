@@ -3,6 +3,7 @@ use actix_web::{web, HttpResponse, Responder};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Mutex;
+use crate::models::db_types::OptionInsertSoftware;
 
 #[derive(Deserialize)]
 pub(crate) struct SoftwareFilter {
@@ -50,4 +51,62 @@ pub(crate) async fn get_software(
     HttpResponse::Ok().json(json!({
         "software": software.unwrap()
     }))
+}
+
+pub(crate) async fn update_software(
+    pool: web::Data<Mutex<Database>>,
+    path: web::Path<SoftwareById>,
+    body: web::Json<OptionInsertSoftware>
+) -> HttpResponse {
+    if path.id.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error:": "Не представлен ID"
+        }));
+    }
+
+    if body.all_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error:": "Пустое тело"
+        }));
+    }
+
+    let mut db = pool.lock().unwrap();
+    match db.update_software_by_id(body.into_inner()) {
+        Ok(s) => {
+            HttpResponse::Ok().json(s)
+        }
+        Err(e) => {
+            HttpResponse::InternalServerError().json(json!({
+                "error": e.to_string()
+            }))
+        },
+    }
+}
+
+pub(crate) async fn new_software(
+    pool: web::Data<Mutex<Database>>,
+    mut body: web::Json<OptionInsertSoftware>
+) -> HttpResponse {
+    if body.any_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Недостаточно полей"
+        }));
+    }
+
+    let mut db = pool.lock().unwrap();
+    match db.new_software(
+        body.0.name.unwrap(),
+        body.0.active.unwrap(),
+        body.0.description.unwrap(),
+        body.0.version.unwrap(),
+        body.0.source.unwrap()
+    ) {
+        Ok(res) => HttpResponse::Ok().json(json!({
+            "software_id": res,
+        })),
+        Err(e) => HttpResponse::InternalServerError().json(json!({
+            "error": e.to_string()
+        }))
+    }
+
 }
