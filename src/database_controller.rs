@@ -1,8 +1,9 @@
 use crate::methods::requests::RequestFilter;
 use crate::methods::requests::RequestWithSoftwares;
 use crate::methods::softwares::SoftwareFilter;
-use crate::models::db_types::Request;
 use crate::models::db_types::Tag;
+use crate::models::db_types::{InsertSoftware, Request};
+use crate::schema::softwares::dsl::softwares;
 use crate::Software;
 use diesel::{prelude::*, sql_query, PgConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
@@ -114,6 +115,26 @@ impl Database {
             softwares: self.get_softwares_by_request(&request),
             request,
         })
+    }
+
+    pub(crate) fn new_software(
+        &mut self,
+        name: String,
+        active: bool,
+        description: String,
+        version: String,
+        source: String,
+    ) -> QueryResult<usize> {
+        use crate::schema::softwares;
+        InsertSoftware {
+            description,
+            active,
+            name,
+            version,
+            source,
+        }
+        .insert_into(softwares::table)
+        .execute(&mut self.connection)
     }
 }
 

@@ -5,8 +5,8 @@ CREATE TABLE users (
     password VARCHAR NOT NULL,
     avatar VARCHAR NOT NULL,
     moderator BOOLEAN NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now()
 );
 
 CREATE TYPE request_status_enum AS ENUM ('created', 'processed', 'completed', 'canceled', 'deleted');
@@ -31,8 +31,8 @@ CREATE TABLE softwares (
     name VARCHAR NOT NULL UNIQUE,
     version VARCHAR NOT NULL,
     source VARCHAR NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now(),
 
     UNIQUE (name, version)
 );
@@ -51,15 +51,15 @@ CREATE TABLE requests_softwares (
     request_id INTEGER NOT NULL REFERENCES requests(id),
     to_install BOOLEAN NOT NULL,
     status soft_status_enum NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now(),
     PRIMARY KEY (software_id, request_id)
 );
 
 CREATE TABLE softwares_tags (
     software_id INTEGER NOT NULL REFERENCES softwares(id),
     tag_id INTEGER NOT NULL REFERENCES tags(id),
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now(),
     PRIMARY KEY (software_id, tag_id)
 );

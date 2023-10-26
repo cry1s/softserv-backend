@@ -55,6 +55,17 @@ pub(crate) struct RequestSoftware {
     updated_at: SystemTime,
 }
 
+#[derive(Insertable, Debug, Selectable, Queryable, Serialize)]
+#[diesel(table_name = crate::schema::softwares)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub(crate) struct InsertSoftware {
+    pub(crate) description: String,
+    pub(crate) active: bool,
+    pub(crate) name: String,
+    pub(crate) version: String,
+    pub(crate) source: String,
+}
+
 #[derive(Identifiable, Debug, Selectable, Queryable, Serialize)]
 #[diesel(table_name = crate::schema::softwares)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
