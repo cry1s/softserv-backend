@@ -11,16 +11,16 @@ use std::env;
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
-pub struct Database {
+pub(crate) struct Database {
     connection: PgConnection,
 }
 
 impl Database {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Database::default()
     }
 
-    pub fn get_all_active_softwares(&mut self, filter: SoftwareFilter) -> Vec<Software> {
+    pub(crate) fn get_all_active_softwares(&mut self, filter: SoftwareFilter) -> Vec<Software> {
         use crate::schema::{softwares, softwares_tags, tags};
         let mut query = softwares::dsl::softwares.into_boxed();
         if let Some(search) = filter.search {
@@ -38,7 +38,7 @@ impl Database {
         query.load(&mut self.connection).unwrap()
     }
 
-    pub fn get_softwares_by_name(&mut self, query: &str) -> Vec<Software> {
+    pub(crate) fn get_softwares_by_name(&mut self, query: &str) -> Vec<Software> {
         use crate::schema::softwares::dsl::*;
         softwares
             .filter(name.ilike(format!("%{}%", query)).and(active.eq(true)))
@@ -47,7 +47,7 @@ impl Database {
             .unwrap()
     }
 
-    pub fn get_software_by_id(&mut self, id: i32) -> Option<Software> {
+    pub(crate) fn get_software_by_id(&mut self, id: i32) -> Option<Software> {
         use crate::schema::softwares::dsl::softwares;
         softwares
             .find(id)
@@ -55,7 +55,7 @@ impl Database {
             .ok()
     }
 
-    pub fn get_tags_by_software(&mut self, soft_id: i32) -> Vec<Tag> {
+    pub(crate) fn get_tags_by_software(&mut self, soft_id: i32) -> Vec<Tag> {
         use crate::schema::softwares_tags::dsl::*;
         use crate::schema::tags;
         softwares_tags
@@ -66,7 +66,7 @@ impl Database {
             .unwrap()
     }
 
-    pub fn delete_software(&mut self, soft_id: i32) {
+    pub(crate) fn delete_software(&mut self, soft_id: i32) {
         sql_query(format!(
             "UPDATE softwares SET active=false WHERE id={}",
             soft_id
@@ -75,7 +75,7 @@ impl Database {
         .unwrap();
     }
 
-    pub fn get_all_requests(&mut self, filter: RequestFilter) -> Vec<Request> {
+    pub(crate) fn get_all_requests(&mut self, filter: RequestFilter) -> Vec<Request> {
         use crate::schema::requests::dsl::*;
         let mut query = requests.into_boxed();
         if let Some(filter_status) = filter.status {
@@ -92,25 +92,27 @@ impl Database {
         }
         query.load(&mut self.connection).unwrap()
     }
-    
-    pub fn get_softwares_by_request(request: Request) -> Vec<Software> {
-        vec![]
+
+    pub(crate) fn get_softwares_by_request(&mut self, request: &Request) -> Vec<Software> {
+        use crate::schema::requests_softwares::dsl::*;
+        use crate::schema::softwares;
+        requests_softwares
+            .filter(request_id.eq(request.id))
+            .inner_join(softwares::table)
+            .select(Software::as_select())
+            .load(&mut self.connection)
+            .unwrap_or(vec![])
     }
 
-    pub fn get_request(&mut self, request_id: i32) -> Option<RequestWithSoftwares> {
+    pub(crate) fn get_request(&mut self, request_id: i32) -> Option<RequestWithSoftwares> {
         use crate::schema::requests::dsl::*;
-        let request: Option<Request> = requests
+        let request: Request = requests
             .find(request_id)
             .get_result::<Request>(&mut self.connection)
-            .ok();
-
-        request.map(|req| {
-            RequestWithSoftwares {
-                request: req,
-                softwares: {
-                    vec![]
-                },
-            }
+            .ok()?;
+        Some(RequestWithSoftwares {
+            softwares: self.get_softwares_by_request(&request),
+            request,
         })
     }
 }

@@ -1,19 +1,19 @@
-use std::sync::Mutex;
-use actix_web::{HttpResponse, web};
-use serde::{Deserialize, Serialize};
-use std::time::SystemTime;
-use serde_json::json;
 use crate::database_controller::Database;
 use crate::models::db_types::{Request, RequestStatus, Software};
+use actix_web::{web, HttpResponse};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use std::sync::Mutex;
+use std::time::SystemTime;
 
 #[derive(Deserialize)]
-pub struct RequestFilter {
-    pub status: Option<RequestStatus>,
-    pub create_date_start: Option<SystemTime>,
-    pub create_date_end: Option<SystemTime>
+pub(crate) struct RequestFilter {
+    pub(crate) status: Option<RequestStatus>,
+    pub(crate) create_date_start: Option<SystemTime>,
+    pub(crate) create_date_end: Option<SystemTime>,
 }
 
-pub async fn get_all_requests(
+pub(crate) async fn get_all_requests(
     pool: web::Data<Mutex<Database>>,
     query: web::Query<RequestFilter>,
 ) -> HttpResponse {
@@ -24,33 +24,41 @@ pub async fn get_all_requests(
 }
 
 #[derive(Deserialize)]
-pub struct RequestById {
-    id: Option<String>
+pub(crate) struct RequestById {
+    pub(crate) id: Option<String>,
 }
 
 #[derive(Serialize)]
-pub struct RequestWithSoftwares {
+pub(crate) struct RequestWithSoftwares {
     #[serde(flatten)]
-    pub request: Request,
-    pub softwares: Vec<Software>
+    pub(crate) request: Request,
+    pub(crate) softwares: Vec<Software>,
 }
 
-pub async fn get_request(
+pub(crate) async fn get_request(
     pool: web::Data<Mutex<Database>>,
-    mut path: web::Path<RequestById>
+    mut path: web::Path<RequestById>,
 ) -> HttpResponse {
     if path.id.is_none() {
         return HttpResponse::BadRequest().json(json!({
             "error:": "Не представлен ID"
-        }))
+        }));
     }
     let id = path.id.take().unwrap().parse::<i32>();
     if id.is_err() {
         return HttpResponse::BadRequest().json(json!({
-            "error": "Неправильный iD"
-        }))
+            "error": "Неправильный ID"
+        }));
     }
     let id = id.unwrap();
-    let db = pool.lock().unwrap().get_request(id);
-    HttpResponse::Ok().finish()
+    let mut db = pool.lock().unwrap();
+    let request = db.get_request(id);
+    if request.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "ID не существует"
+        }));
+    }
+    HttpResponse::Ok().json(json!({
+        "request": request.unwrap()
+    }))
 }
