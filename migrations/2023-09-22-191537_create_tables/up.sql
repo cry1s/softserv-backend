@@ -15,7 +15,7 @@ CREATE TABLE requests (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
     moderator_id INTEGER REFERENCES users(id),
-    status request_status_enum NOT NULL,
+    status request_status_enum NOT NULL DEFAULT 'created',
     ssh_address VARCHAR,
     ssh_password VARCHAR,
     created_at TIMESTAMP NOT NULL,

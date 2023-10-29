@@ -8,7 +8,6 @@ use actix_files as fs;
 use actix_web::{get, middleware::Logger, post, web, App, HttpResponse, HttpServer, Responder};
 use database_controller::Database;
 use handlebars::Handlebars;
-use methods::requests::get_all_requests;
 use serde::Deserialize;
 
 #[actix_web::main]
@@ -24,7 +23,23 @@ async fn main() -> std::io::Result<()> {
             .service(index)
             .service(get_soft)
             .service(delete_soft)
-            .route("/all_requests", web::get().to(get_all_requests))
+            .route("/softwares", web::get().to(methods::softwares::all_softwares))
+            .route(
+                "/software",
+                web::post().to(methods::softwares::new_software),
+            )
+            .service(
+                web::resource("/software/{id}")
+                    .route(web::get().to(methods::softwares::get_software))
+                    .route(web::post().to(methods::softwares::update_software))
+            )
+            .route("/requests", web::get().to(methods::requests::get_all_requests))
+            .route("/request", web::post().to(methods::requests::new_request))
+            .service(
+                web::resource("/request/{id}")
+                    .route(web::get().to(methods::requests::get_request))
+                    .route(web::post().to(methods::requests::update_request))
+            )
     })
     .bind(("0.0.0.0", 8080))?
     .run()

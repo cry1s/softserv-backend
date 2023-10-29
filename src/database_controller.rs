@@ -1,7 +1,7 @@
 use crate::methods::requests::RequestFilter;
 use crate::methods::requests::RequestWithSoftwares;
 use crate::methods::softwares::SoftwareFilter;
-use crate::models::db_types::{OptionInsertSoftware, Tag};
+use crate::models::db_types::{InsertRequest, OptionInsertRequest, OptionInsertSoftware, Tag};
 use crate::models::db_types::{InsertSoftware, Request};
 use crate::Software;
 use diesel::{prelude::*, sql_query, PgConnection};
@@ -136,13 +136,29 @@ impl Database {
         .execute(&mut self.connection)
     }
 
-    pub(crate) fn update_software_by_id(&mut self, new_data: OptionInsertSoftware) -> QueryResult<Software> {
-        use crate::schema::softwares::dsl::*;
+    pub(crate) fn update_software_by_id(&mut self, id: i32, new_data: OptionInsertSoftware) -> QueryResult<Software> {
+        use crate::schema::softwares::dsl::softwares;
         diesel::update(
             softwares.find(id)
         ).set(
             new_data
         ).get_result::<Software>(&mut self.connection)
+    }
+
+    pub(crate) fn new_request(&mut self, request: InsertRequest) -> QueryResult<usize> {
+        use crate::schema::requests;
+        diesel::insert_into(requests::table)
+            .values(request)
+            .execute(&mut self.connection)
+    }
+
+    pub(crate) fn update_request_by_id(&mut self, id: i32, new_data: OptionInsertRequest) -> QueryResult<Request> {
+        use crate::schema::requests::dsl::requests;
+        diesel::update(
+            requests.find(id)
+        ).set(
+            new_data
+        ).get_result::<Request>(&mut self.connection)
     }
 }
 

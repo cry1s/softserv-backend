@@ -40,6 +40,27 @@ pub(crate) struct Request {
     pub(crate) completed_at: Option<SystemTime>,
 }
 
+#[derive(Insertable, Debug, Selectable, Queryable, Serialize)]
+#[diesel(table_name = crate::schema::requests)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub(crate) struct InsertRequest {
+    pub(crate) user_id: i32,
+    pub(crate) ssh_address: Option<String>,
+    pub(crate) ssh_password: Option<String>,
+}
+
+#[derive(Deserialize, AsChangeset)]
+#[diesel(table_name = crate::schema::requests)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub(crate) struct OptionInsertRequest {
+    pub(crate) ssh_address: Option<String>,
+    pub(crate) ssh_password: Option<String>,
+    pub(crate) moderator_id: Option<i32>,
+    pub(crate) status: Option<RequestStatus>,
+    pub(crate) processed_at: Option<SystemTime>,
+    pub(crate) completed_at: Option<SystemTime>,
+}
+
 #[derive(Identifiable, Debug, Selectable, Queryable, Associations)]
 #[diesel(primary_key(software_id, request_id))]
 #[diesel(belongs_to(Software))]
