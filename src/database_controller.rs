@@ -1,6 +1,7 @@
 use crate::methods::requests::RequestFilter;
 use crate::methods::requests::RequestWithSoftwares;
 use crate::methods::softwares::SoftwareFilter;
+use crate::models::db_types::RequestStatus;
 use crate::models::db_types::{InsertRequest, OptionInsertRequest, OptionInsertSoftware, Tag};
 use crate::models::db_types::{InsertSoftware, Request};
 use crate::Software;
@@ -160,6 +161,67 @@ impl Database {
             new_data
         ).get_result::<Request>(&mut self.connection)
     }
+
+    pub(crate) fn get_tags_by_input(&mut self, input: String) -> Vec<Tag> {
+        use crate::schema::tags::dsl::*;
+        tags.filter(name.like(format!("%{}%", input)))
+            .select(Tag::as_select())
+            .load(&mut self.connection)
+            .unwrap_or(vec![])
+    }
+
+    pub(crate) fn create_tag(&mut self, tag: String) -> QueryResult<()> {
+        #[derive(Insertable)]
+        #[table_name = "tags"]
+        #[diesel(check_for_backend(diesel::pg::Pg))]
+        struct InsertTag {
+            name: String,
+        }
+
+        use crate::schema::tags;
+        InsertTag { name: tag }
+            .insert_into(tags::table)
+            .execute(&mut self.connection)
+            .map(|_| ())
+    }
+
+    pub(crate) fn add_tag_to_software(&mut self, soft_id: i32, tag_id: i32) -> QueryResult<usize> {
+        #[derive(Insertable)]
+        #[table_name = "softwares_tags"]
+        #[diesel(check_for_backend(diesel::pg::Pg))]
+        struct InsertTag {
+            software_id: i32,
+            tag_id: i32,
+        }
+
+        use crate::schema::softwares_tags;
+        InsertTag { software_id: soft_id, tag_id }
+            .insert_into(softwares_tags::table)
+            .execute(&mut self.connection)
+        
+    }
+
+    pub(crate) fn add_software_to_last_request(&mut self, soft_id: i32, user_id: i32) {
+        todo!()
+    }
+
+    pub(crate) fn remove_software_from_last_request(&mut self, soft_id: i32, user_id: i32) {
+        todo!()
+    }
+
+    pub(crate) fn upload_software_image(&mut self, soft_id: i32, image_url: &str) {
+        todo!()
+    }
+
+    pub(crate) fn change_request_status(&mut self, request_id: i32, status: RequestStatus) {
+        todo!()
+    }
+
+    pub(crate) fn restore_software(&mut self, soft_id: i32) {
+        todo!()
+    }
+
+
 }
 
 fn establish_connection() -> PgConnection {

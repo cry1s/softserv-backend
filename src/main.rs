@@ -40,6 +40,8 @@ async fn main() -> std::io::Result<()> {
                     .route(web::get().to(methods::requests::get_request))
                     .route(web::post().to(methods::requests::update_request))
             )
+            .route("/tags/{input}", web::get().to(methods::tags::tags_by_input))
+            
     })
     .bind(("0.0.0.0", 8080))?
     .run()

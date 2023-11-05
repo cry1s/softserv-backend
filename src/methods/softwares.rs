@@ -92,7 +92,7 @@ pub(crate) async fn update_software(
 
 pub(crate) async fn new_software(
     pool: web::Data<Mutex<Database>>,
-    mut body: web::Json<OptionInsertSoftware>
+    body: web::Json<OptionInsertSoftware>
 ) -> HttpResponse {
     if body.any_none() {
         return HttpResponse::BadRequest().json(json!({
@@ -116,4 +116,35 @@ pub(crate) async fn new_software(
         }))
     }
 
+}
+
+pub(crate) async fn add_tag_to_software(
+    pool: web::Data<Mutex<Database>>,
+    mut path: web::Path<SoftwareById>,
+) -> HttpResponse {
+    let mut db = pool.lock().unwrap();
+    let software = db.get_software_by_id(path.id.take().unwrap().parse::<i32>().unwrap());
+    if software.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "ID не существует"
+        }));
+    }
+    let software = software.unwrap();
+    let tag = db.create_tag("".to_string());
+    if tag.is_err() {
+        return HttpResponse::InternalServerError().json(json!({
+            "error": tag.unwrap_err().to_string()
+        }));
+    }
+    let tag = tag.unwrap();
+    let software_tag = db.add_tag_to_software(software.id, tag);
+    if software_tag.is_err() {
+        return HttpResponse::InternalServerError().json(json!({
+            "error": software_tag.unwrap_err().to_string()
+        }));
+    }
+    HttpResponse::Ok().json(json!({
+        "software_tag": software_tag.unwrap()
+    }))
+    
 }
