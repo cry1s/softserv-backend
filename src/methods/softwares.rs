@@ -88,11 +88,11 @@ pub(crate) async fn update_software(
     }
     let software = software.unwrap();
     let new_data = OptionInsertSoftware {
-        name: body.0.name.or(Option::from(software.name)),
-        active: body.0.active.or(Option::from(software.active)),
-        description: body.0.description.or(Option::from(software.description)),
-        version: body.0.version.or(Option::from(software.version)),
-        source: body.0.source.or(Option::from(software.source)),
+        name: body.0.name.or(Option::from(software.software.name)),
+        active: body.0.active.or(Option::from(software.software.active)),
+        description: body.0.description.or(Option::from(software.software.description)),
+        version: body.0.version.or(Option::from(software.software.version)),
+        source: body.0.source.or(Option::from(software.software.source)),
     };
     let response = db.update_software_by_id(id, new_data);
     response.response(json!({
@@ -125,7 +125,7 @@ pub(crate) async fn new_software(
 
 #[derive(Deserialize)]
 pub(crate) struct AddTagPayload {
-    pub(crate) software_id: i32,
+    pub(crate) soft_id: i32,
     pub(crate) tag_id: i32,
 }
 
@@ -134,7 +134,7 @@ pub(crate) async fn add_tag_to_software(
     path: web::Path<AddTagPayload>,
 ) -> HttpResponse {
     let mut db = pool.lock().unwrap();
-    let response = db.add_tag_to_software(path.software_id, path.tag_id);
+    let response = db.add_tag_to_software(path.soft_id, path.tag_id);
     response.response(json!({
         "status": "ok"
     }))
@@ -145,7 +145,7 @@ pub(crate) async fn delete_tag(
     path: web::Path<AddTagPayload>,
 ) -> HttpResponse {
     let mut db = pool.lock().unwrap();
-    let response = db.delete_tag_from_software(path.software_id, path.tag_id);
+    let response = db.delete_tag_from_software(path.soft_id, path.tag_id);
     response.response(json!({
         "status": "ok"
     }))
@@ -153,31 +153,26 @@ pub(crate) async fn delete_tag(
 
 pub(crate) async fn delete_software(
     pool: web::Data<Mutex<Database>>,
-    payload: web::Json<DeleteSoftPayload>,
+    path: web::Path<(i32,)>,
 ) -> impl Responder {
-    let response = pool.lock().unwrap().delete_software(payload.soft_id);
+    let response = pool.lock().unwrap().delete_software(path.0);
     response.response(json!({
         "status": "ok"
     }))
 }
 
-#[derive(Deserialize)]
-pub(crate) struct DeleteSoftPayload {
-    soft_id: i32,
-}
-
 pub(crate) async fn add_image(
     s3: web::Data<s3::bucket::Bucket>,
     pool: web::Data<Mutex<Database>>,
-    mut path: web::Path<SoftwareById>,
+    mut path: web::Path<(Option<String>,)>,
     body: web::Bytes,
 ) -> HttpResponse {
-    if path.id.is_none() {
+    if path.0.is_none() {
         return HttpResponse::BadRequest().json(json!({
             "error:": "Не представлен ID"
         }));
     }
-    let id = path.id.take().unwrap().parse::<i32>();
+    let id = path.0.take().unwrap().parse::<i32>();
     if id.is_err() {
         return HttpResponse::BadRequest().json(json!({
             "error": "Неправильный ID"
@@ -192,20 +187,16 @@ pub(crate) async fn add_image(
         }));
     }
     let software = software.unwrap();
-    let name = format!("{}.png", software.id);
+    let name = format!("{}.png", software.software.id);
+    drop(db);
     let response = s3.put_object(&name, &body).await;
+    let mut db = pool.lock().unwrap();
     if response.is_err() {
         return HttpResponse::InternalServerError().json(json!({
-            "error": "Ошибка при загрузке изображения"
+            "error": response.err().unwrap().to_string()
         }));
     }
-    let response = db.update_software_by_id(id, OptionInsertSoftware {
-        name: None,
-        active: None,
-        description: None,
-        version: None,
-        source: Some(format!("https://software-registry.s3.eu-central-1.amazonaws.com/{}", name)),
-    });
+    let response = db.add_logo_to_software(id, &format!("http://localhost:9000/bucket/{}", name));
     response.response(json!({
         "status": "ok"
     }))

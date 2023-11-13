@@ -1,7 +1,7 @@
 use crate::methods::requests::RequestFilter;
 use crate::methods::requests::RequestWithSoftwares;
 use crate::methods::softwares::SoftwareFilter;
-use crate::models::{RequestStatus, SoftwareStatus};
+use crate::models::{AddImageSoftware, RequestStatus, SoftwareStatus};
 use crate::models::{InsertRequest, OptionInsertRequest, OptionInsertSoftware, Tag};
 use crate::models::{InsertSoftware, Request};
 use crate::Software;
@@ -9,6 +9,8 @@ use diesel::{prelude::*, sql_query, PgConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use dotenvy::dotenv;
 use std::env;
+use std::time::SystemTime;
+use serde::{Deserialize, Serialize};
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
@@ -21,7 +23,7 @@ impl Database {
         Database::default()
     }
 
-    pub(crate) fn get_all_active_softwares(&mut self, filter: SoftwareFilter) -> Vec<Software> {
+    pub(crate) fn get_all_active_softwares(&mut self, filter: SoftwareFilter) -> Vec<SoftwareWithTags> {
         use crate::schema::{softwares, softwares_tags, tags};
         let mut query = softwares::dsl::softwares.into_boxed();
         if let Some(search) = filter.search {
@@ -36,24 +38,31 @@ impl Database {
                     .or(softwares::dsl::id.eq_any(software_ids)),
             )
         };
-        query.load(&mut self.connection).unwrap()
+        let softwares: Vec<Software> = query.load(&mut self.connection).unwrap();
+        // applying tags
+        let mut softwares_with_tags = vec![];
+        for software in softwares {
+            let tags = self.get_tags_by_software(software.id);
+            softwares_with_tags.push(SoftwareWithTags {
+                software,
+                tags: tags.into_iter().map(|tag| tag.name).collect(),
+            })
+        }
+        softwares_with_tags
     }
 
-    pub(crate) fn get_softwares_by_name(&mut self, query: &str) -> Vec<Software> {
-        use crate::schema::softwares::dsl::*;
-        softwares
-            .filter(name.ilike(format!("%{}%", query)).and(active.eq(true)))
-            .select(Software::as_select())
-            .load(&mut self.connection)
-            .unwrap()
-    }
-
-    pub(crate) fn get_software_by_id(&mut self, id: i32) -> Option<Software> {
+    pub(crate) fn get_software_by_id(&mut self, id: i32) -> Option<SoftwareWithTags> {
         use crate::schema::softwares::dsl::softwares;
-        softwares
+        let software: Software = softwares
             .find(id)
             .get_result::<Software>(&mut self.connection)
-            .ok()
+            .ok()?;
+
+        let tags = self.get_tags_by_software(software.id);
+        Some(SoftwareWithTags {
+            software,
+            tags: tags.into_iter().map(|tag| tag.name).collect(),
+        })
     }
 
     pub(crate) fn get_tags_by_software(&mut self, soft_id: i32) -> Vec<Tag> {
@@ -75,29 +84,40 @@ impl Database {
         .execute(&mut self.connection)
     }
 
-    pub(crate) fn get_all_requests(&mut self, filter: RequestFilter) -> Vec<Request> {
-        use crate::schema::requests::dsl::*;
-        let mut query = requests.into_boxed();
+    pub(crate) fn get_all_requests(&mut self, filter: RequestFilter) -> Vec<RequestWithSoftwares> {
+        use crate::schema::requests::dsl;
+        let mut query = dsl::requests.into_boxed();
         if let Some(filter_status) = filter.status {
-            query = query.filter(status.eq(filter_status))
+            query = query.filter(dsl::status.eq(filter_status))
         }
         if let Some(create_date_start) = filter.create_date_start {
+            let create_date_start = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(create_date_start as u64);
             if let Some(create_date_end) = filter.create_date_end {
-                query = query.filter(created_at.between(create_date_start, create_date_end))
+                let create_date_end = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(create_date_end as u64);
+                query = query.filter(dsl::created_at.between(create_date_start, create_date_end))
             } else {
-                query = query.filter(created_at.ge(create_date_start))
+                query = query.filter(dsl::created_at.ge(create_date_start))
             }
         } else if let Some(create_date_end) = filter.create_date_end {
-            query = query.filter(created_at.le(create_date_end))
+            let create_date_end = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(create_date_end as u64);
+            query = query.filter(dsl::created_at.le(create_date_end))
         }
-        query.load(&mut self.connection).unwrap()
+        let requests: Vec<Request> = query.load(&mut self.connection).unwrap();
+        let mut requests_with_softwares = vec![];
+        for request in requests {
+            requests_with_softwares.push(RequestWithSoftwares {
+                softwares: self.get_softwares_by_request(&request),
+                request,
+            })
+        }
+        requests_with_softwares
     }
 
     pub(crate) fn get_softwares_by_request(&mut self, request: &Request) -> Vec<Software> {
         use crate::schema::requests_softwares::dsl::*;
         use crate::schema::softwares;
         requests_softwares
-            .filter(request_id.eq(request.id))
+            .filter(request_id.eq(request.id).and(status.ne(SoftwareStatus::Canceled)))
             .inner_join(softwares::table)
             .select(Software::as_select())
             .load(&mut self.connection)
@@ -142,6 +162,17 @@ impl Database {
             softwares.find(id)
         ).set(
             new_data
+        ).get_result::<Software>(&mut self.connection)
+    }
+
+    pub(crate) fn add_logo_to_software(&mut self, soft_id: i32, logo_url: &str) -> QueryResult<Software> {
+        use crate::schema::softwares::dsl::softwares;
+        diesel::update(
+            softwares.find(soft_id)
+        ).set(
+            AddImageSoftware {
+                logo: Some(logo_url.to_string()),
+            }
         ).get_result::<Software>(&mut self.connection)
     }
 
@@ -200,13 +231,13 @@ impl Database {
         
     }
 
-    pub(crate) fn delete_tag_from_software(&mut self, soft_id: i32, tag_id: i32) -> QueryResult<usize> {
+    pub(crate) fn delete_tag_from_software(&mut self, soft_id: i32, tag_del_id: i32) -> QueryResult<usize> {
         use crate::schema::softwares_tags::dsl::*;
         diesel::delete(
             softwares_tags.filter(
                 software_id.eq(soft_id)
                     .and(
-                        tag_id.eq(tag_id)
+                        tag_id.eq(tag_del_id)
                     )
             )
         ).execute(&mut self.connection)
@@ -244,20 +275,14 @@ impl Database {
             .execute(&mut self.connection)
     }
 
-    pub(crate) fn remove_software_from_last_request(&mut self, soft_id: i32, user_id: i32) {
-    }
-
-    pub(crate) fn upload_software_image(&mut self, soft_id: i32, image_url: &str) {
-    }
-
-    pub(crate) fn change_request_status(&mut self, request_id: i32, status: RequestStatus) -> QueryResult<usize> {
-        use crate::schema::requests::dsl::*;
-        diesel::update(
-            requests.find(request_id)
-        ).set(
-            status.eq(status)
-        ).execute(&mut self.connection)
-    }
+    // pub(crate) fn change_request_status(&mut self, request_id: i32, status: RequestStatus) -> QueryResult<usize> {
+    //     use crate::schema::requests::dsl::*;
+    //     diesel::update(
+    //         requests.find(request_id)
+    //     ).set(
+    //         status.eq(status)
+    //     ).execute(&mut self.connection)
+    // }
 
 
     pub(crate) fn delete_request(&mut self, request_id: i32) -> QueryResult<usize> {
@@ -290,11 +315,11 @@ impl Database {
             .execute(&mut self.connection)
     }
 
-    pub(crate) fn delete_software_from_request(&mut self, request_id: i32, soft_id: i32) -> QueryResult<usize> {
+    pub(crate) fn delete_software_from_request(&mut self, req_id: i32, soft_id: i32) -> QueryResult<usize> {
         use crate::schema::requests_softwares::dsl::*;
         diesel::update(
             requests_softwares.filter(
-                request_id.eq(request_id)
+                request_id.eq(req_id)
                     .and(
                         software_id.eq(soft_id)
                     )
@@ -304,17 +329,17 @@ impl Database {
         ).execute(&mut self.connection)
     }
 
-    pub(crate) fn change_request_software_status(&mut self, request_id: i32, soft_id: i32, status: SoftwareStatus) -> QueryResult<usize> {
+    pub(crate) fn change_request_software_status(&mut self, req_id: i32, soft_id: i32, new_status: SoftwareStatus) -> QueryResult<usize> {
         use crate::schema::requests_softwares::dsl::*;
         diesel::update(
             requests_softwares.filter(
-                request_id.eq(request_id)
+                request_id.eq(req_id)
                     .and(
                         software_id.eq(soft_id)
                     )
             )
         ).set(
-            status.eq(status)
+            status.eq(new_status)
         ).execute(&mut self.connection)
     }
 
@@ -332,6 +357,15 @@ impl Database {
         ).set(
             name.eq(new_name)
         ).get_result::<Tag>(&mut self.connection)
+    }
+
+    pub(crate) fn apply_mod(&mut self, request_id: i32, mod_id: i32) -> QueryResult<usize> {
+        use crate::schema::requests::dsl::*;
+        diesel::update(
+            requests.find(request_id)
+        ).set(
+            moderator_id.eq(mod_id)
+        ).execute(&mut self.connection)
     }
 }
 
@@ -357,6 +391,12 @@ fn establish_connection() -> PgConnection {
             PgConnection::establish(&localhost).unwrap()
         }
     }
+}
+
+#[derive(Serialize, Deserialize)]
+pub(crate) struct SoftwareWithTags {
+    pub(crate) software: Software,
+    pub(crate) tags: Vec<String>,
 }
 
 impl Default for Database {

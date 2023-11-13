@@ -1,8 +1,11 @@
 use std::sync::Mutex;
 
 use actix_web::{web, HttpResponse};
+use serde::Deserialize;
+use serde_json::json;
 
 use crate::controller::Database;
+use crate::methods::Response;
 
 pub(crate) async fn tags_by_input(
     pool: web::Data<Mutex<Database>>,
@@ -14,17 +17,21 @@ pub(crate) async fn tags_by_input(
     HttpResponse::Ok().json(tags)    
 }
 
+#[derive(Deserialize)]
+pub(crate) struct Tag {
+    pub(crate) name: String,
+}
+
 pub(crate) async fn new_tag(
     pool: web::Data<Mutex<Database>>,
-    tag: web::Json<String>,
+    body: web::Json<Tag>,
 ) -> HttpResponse 
 {
     let mut db = pool.lock().unwrap();
-    let tag = db.create_tag(tag.into_inner());
-    match tag {
-        Ok(tag) => HttpResponse::Ok().json(tag),
-        Err(e) => HttpResponse::BadRequest().json(e.to_string()),
-    }
+    let tag = db.create_tag(body.name.clone());
+    tag.response(json!({
+        "status": "ok",
+    }))
 }
 
 pub(crate) async fn get_tag(
@@ -43,11 +50,11 @@ pub(crate) async fn get_tag(
 pub(crate) async fn update_tag(
     pool: web::Data<Mutex<Database>>,
     path: web::Path<i32>,
-    tag: web::Json<String>,
+    tag: web::Json<Tag>,
 ) -> HttpResponse
 {
     let mut db = pool.lock().unwrap();
-    let tag = db.update_tag_by_id(path.into_inner(), tag.into_inner());
+    let tag = db.update_tag_by_id(path.into_inner(), tag.name.clone());
     match tag {
         Ok(tag) => HttpResponse::Ok().json(tag),
         Err(e) => HttpResponse::BadRequest().json(e.to_string()),

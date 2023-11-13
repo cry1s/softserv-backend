@@ -5,7 +5,6 @@ use actix_web::{App, HttpResponse, HttpServer, middleware::Logger, web};
 use s3::{Bucket, Region};
 use s3::creds::Credentials;
 use controller::Database;
-use serde::Deserialize;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -24,7 +23,7 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::resource("/software/{id}")
                     .route(web::get().to(methods::softwares::get_software))
-                    .route(web::post().to(methods::softwares::update_software))
+                    .route(web::put().to(methods::softwares::update_software))
                     .route(web::delete().to(methods::softwares::delete_software)),
             )
             .route("/software/{soft_id}/add_tag/{tag_id}", web::post().to(methods::softwares::add_tag_to_software))
@@ -36,19 +35,20 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::resource("/request/{id}")
                     .route(web::get().to(methods::requests::get_request))
-                    .route(web::post().to(methods::requests::update_request))
+                    .route(web::put().to(methods::requests::update_request))
                     .route(web::delete().to(methods::requests::delete_request))
                     .route(web::patch().to(methods::requests::change_request_status))
             )
             .route("/request/{request_id}/add_software/", web::post().to(methods::requests::add_software_to_request))
             .route("/request/{request_id}/remove_software/{software_id}", web::delete().to(methods::requests::delete_software_from_request))
             .route("/request/{request_id}/change_status/{software_id}", web::patch().to(methods::requests::change_request_software_status))
+            .route("/request/{request_id}/apply_mod", web::patch().to(methods::requests::apply_mod))
             .route("/tags/{input}", web::get().to(methods::tags::tags_by_input))
             .route("/tag", web::post().to(methods::tags::new_tag))
             .service(
                 web::resource("/tag/{id}")
                     .route(web::get().to(methods::tags::get_tag))
-                    .route(web::post().to(methods::tags::update_tag))
+                    .route(web::put().to(methods::tags::update_tag))
             )
     })
     .bind(("0.0.0.0", 8080))?
@@ -71,5 +71,5 @@ fn connect_to_bucket() -> Bucket {
         security_token: None,
         session_token: None,
         expiration: None,
-    }).unwrap()
+    }).unwrap().with_path_style()
 }

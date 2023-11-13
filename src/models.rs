@@ -2,7 +2,6 @@
 use std::time::SystemTime;
 
 
-
 use diesel::prelude::*;
 
 
@@ -12,6 +11,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, DbEnum, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[ExistingTypePath = "crate::schema::sql_types::RequestStatusEnum"]
 #[DbValueStyle = "snake_case"]
+#[serde(rename_all = "snake_case")]
 pub(crate) enum RequestStatus {
     Created,
     Processed,
@@ -33,7 +33,6 @@ pub(crate) enum SoftwareStatus {
 }
 
 #[derive(Debug, Selectable, Queryable, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
 #[diesel(table_name = crate::schema::requests)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub(crate) struct Request {
@@ -57,7 +56,7 @@ pub(crate) struct InsertRequest {
     pub(crate) ssh_password: Option<String>,
 }
 
-#[derive(Deserialize, AsChangeset)]
+#[derive(Deserialize, AsChangeset, Default)]
 #[diesel(table_name = crate::schema::requests)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub(crate) struct OptionInsertRequest {
@@ -106,6 +105,13 @@ pub(crate) struct OptionInsertSoftware {
     pub(crate) source: Option<String>,
 }
 
+#[derive(Deserialize, AsChangeset)]
+#[diesel(table_name = crate::schema::softwares)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub(crate) struct AddImageSoftware {
+    pub(crate) logo: Option<String>,
+}
+
 impl OptionInsertSoftware {
     pub(crate) fn any_none(&self) -> bool {
         self.description.is_none() || self.active.is_none() || self.name.is_none() || self.version.is_none() || self.source.is_none()
@@ -116,7 +122,7 @@ impl OptionInsertSoftware {
     }
 }
 
-#[derive(Identifiable, Debug, Selectable, Queryable, Serialize)]
+#[derive(Identifiable, Debug, Selectable, Queryable, Serialize, Deserialize)]
 #[diesel(table_name = crate::schema::softwares)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub(crate) struct Software {
@@ -149,7 +155,7 @@ pub(crate) struct SoftwareTag {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub(crate) struct Tag {
     id: i32,
-    name: String,
+    pub(crate) name: String,
     created_at: SystemTime,
     updated_at: SystemTime,
 }

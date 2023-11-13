@@ -10,8 +10,8 @@ use super::Response;
 #[derive(Deserialize)]
 pub(crate) struct RequestFilter {
     pub(crate) status: Option<RequestStatus>,
-    pub(crate) create_date_start: Option<SystemTime>,
-    pub(crate) create_date_end: Option<SystemTime>,
+    pub(crate) create_date_start: Option<i32>,
+    pub(crate) create_date_end: Option<i32>,
 }
 
 pub(crate) async fn get_all_requests(
@@ -31,9 +31,8 @@ pub(crate) struct RequestById {
 
 #[derive(Serialize)]
 pub(crate) struct RequestWithSoftwares {
-    #[serde(flatten)]
-    pub(crate) request: Request,
     pub(crate) softwares: Vec<Software>,
+    pub(crate) request: Request,
 }
 
 pub(crate) async fn get_request(
@@ -82,18 +81,9 @@ pub(crate) async fn new_request(
         ssh_password: body.0.ssh_password,
     };
     let response = db.new_request(request);
-    match response {
-        Ok(id) => {
-            HttpResponse::Ok().json(json!({
-                "id": id
-            }))
-        }
-        Err(e) => {
-            HttpResponse::BadRequest().json(json!({
-                "error": e.to_string()
-            }))
-        }
-    }
+    response.response(json!({
+        "status": "ok"
+    }))
 }
 
 fn get_user_id_mock() -> i32 {
@@ -103,7 +93,7 @@ fn get_user_id_mock() -> i32 {
 pub(crate) async fn update_request(
     pool: web::Data<Mutex<Database>>,
     mut path: web::Path<RequestById>,
-    body: web::Json<OptionInsertRequest>,
+    mut body: web::Json<OptionInsertRequest>,
 ) -> HttpResponse {
     if path.id.is_none() {
         return HttpResponse::BadRequest().json(json!({
@@ -115,6 +105,16 @@ pub(crate) async fn update_request(
         return HttpResponse::BadRequest().json(json!({
             "error": "Неправильный ID"
         }));
+    }
+
+    match body.0.status {
+        Some(RequestStatus::Completed) => {
+            body.0.completed_at = Some(SystemTime::now());
+        }
+        Some(RequestStatus::Processed) => {
+            body.0.processed_at = Some(SystemTime::now());
+        }
+        _ => {}
     }
 
     let mut db = pool.lock().unwrap();
@@ -176,7 +176,20 @@ pub(crate) async fn change_request_status(
     let _user_id = get_user_id_mock();
     // TODO: check if user is moderator
     let mut db = pool.lock().unwrap();
-    let response = db.change_request_status(id.unwrap(), body.status.unwrap());
+
+    let mut upd = OptionInsertRequest::default();
+
+    match body.status.unwrap() {
+        RequestStatus::Completed => {
+            upd.completed_at = Some(SystemTime::now());
+        }
+        RequestStatus::Processed => {
+            upd.processed_at = Some(SystemTime::now());
+        }
+        _ => {}
+    }
+
+    let response = db.update_request_by_id(id.unwrap(), upd);
     response.response(json!({
         "status": "ok"
     }))
@@ -294,6 +307,26 @@ pub(crate) async fn change_request_software_status(
     // TODO check if user is moderator and owner of request
 
     let response = db.change_request_software_status(request_id, software_id, body.status.unwrap());
+    response.response(json!({
+        "status": "ok"
+    }))
+}
+
+pub(crate) async fn apply_mod(
+    pool: web::Data<Mutex<Database>>,
+    mut path: web::Path<(Option<i32>,)>,
+) -> HttpResponse {
+    if path.0.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error:": "Не представлен request_id"
+        }));
+    }
+    let request_id = path.0.take().unwrap();
+    let mut db = pool.lock().unwrap();
+    let user_id = get_user_id_mock();
+    // TODO check if user is moderator
+
+    let response = db.apply_mod(request_id, user_id);
     response.response(json!({
         "status": "ok"
     }))

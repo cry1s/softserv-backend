@@ -18,9 +18,9 @@ CREATE TABLE requests (
     status request_status_enum NOT NULL DEFAULT 'created',
     ssh_address VARCHAR,
     ssh_password VARCHAR,
-    created_at TIMESTAMP NOT NULL,
-    processed_at TIMESTAMP,
-    completed_at TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    processed_at TIMESTAMP NOT NULL DEFAULT now(),
+    completed_at TIMESTAMP NOT NULL DEFAULT now()
 );
 
 CREATE TABLE softwares (
@@ -40,8 +40,8 @@ CREATE TABLE softwares (
 CREATE TABLE tags (
     id SERIAL PRIMARY KEY,
     name VARCHAR NOT NULL UNIQUE,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now()
 );
 
 CREATE TYPE soft_status_enum AS ENUM ('new', 'processed', 'completed', 'failed', 'canceled');
