@@ -42,3 +42,9 @@ services:
       /usr/bin/mc anonymous set public myminio/bucket;
       exit 0;
       "
+  adminer:
+    image: adminer:latest
+    ports:
+      - "5000:8080"
+    depends_on:
+      - db
