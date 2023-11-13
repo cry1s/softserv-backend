@@ -1,7 +1,6 @@
 use std::sync::Mutex;
 
 use crate::models::Software;
-use actix_files as fs;
 use actix_web::{App, HttpResponse, HttpServer, middleware::Logger, web};
 use s3::{Bucket, Region};
 use s3::creds::Credentials;
@@ -17,7 +16,6 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(Mutex::new(Database::new())))
             .app_data(web::Data::new(connect_to_bucket()))
             .default_service(web::route().to(HttpResponse::NotFound))
-            .service(fs::Files::new("/static", "./resources/static"))
             .route("/softwares", web::get().to(methods::softwares::all_softwares))
             .route(
                 "/software",
