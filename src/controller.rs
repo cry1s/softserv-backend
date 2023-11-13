@@ -1,9 +1,9 @@
 use crate::methods::requests::RequestFilter;
 use crate::methods::requests::RequestWithSoftwares;
 use crate::methods::softwares::SoftwareFilter;
-use crate::models::db_types::RequestStatus;
-use crate::models::db_types::{InsertRequest, OptionInsertRequest, OptionInsertSoftware, Tag};
-use crate::models::db_types::{InsertSoftware, Request};
+use crate::models::{RequestStatus, SoftwareStatus};
+use crate::models::{InsertRequest, OptionInsertRequest, OptionInsertSoftware, Tag};
+use crate::models::{InsertSoftware, Request};
 use crate::Software;
 use diesel::{prelude::*, sql_query, PgConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
@@ -67,13 +67,12 @@ impl Database {
             .unwrap()
     }
 
-    pub(crate) fn delete_software(&mut self, soft_id: i32) {
+    pub(crate) fn delete_software(&mut self, soft_id: i32) -> QueryResult<usize> {
         sql_query(format!(
             "UPDATE softwares SET active=false WHERE id={}",
             soft_id
         ))
         .execute(&mut self.connection)
-        .unwrap();
     }
 
     pub(crate) fn get_all_requests(&mut self, filter: RequestFilter) -> Vec<Request> {
@@ -201,28 +200,142 @@ impl Database {
         
     }
 
-    pub(crate) fn add_software_to_last_request(&mut self, soft_id: i32, user_id: i32) {
-        todo!()
+    pub(crate) fn delete_tag_from_software(&mut self, soft_id: i32, tag_id: i32) -> QueryResult<usize> {
+        use crate::schema::softwares_tags::dsl::*;
+        diesel::delete(
+            softwares_tags.filter(
+                software_id.eq(soft_id)
+                    .and(
+                        tag_id.eq(tag_id)
+                    )
+            )
+        ).execute(&mut self.connection)
+    }
+
+    pub(crate) fn add_software_to_last_request(&mut self, soft_id: i32, user_id: i32, to_install: bool) -> QueryResult<usize> {
+        #[derive(Insertable)]
+        #[table_name = "requests_softwares"]
+        #[diesel(check_for_backend(diesel::pg::Pg))]
+        struct InsertRequestSoftware {
+            software_id: i32,
+            request_id: i32,
+            to_install: bool,
+            status: SoftwareStatus,
+        }
+
+        use crate::schema::requests_softwares;
+        let request_id = crate::schema::requests::dsl::requests
+            .filter(
+                crate::schema::requests::dsl::user_id.eq(user_id)
+                    .and(
+                        crate::schema::requests::dsl::status.eq(RequestStatus::Created)
+                    )
+            )
+            .order(crate::schema::requests::dsl::created_at.desc())
+            .select(crate::schema::requests::dsl::id)
+            .first::<i32>(&mut self.connection)?;
+
+        InsertRequestSoftware {
+            software_id: soft_id,
+            request_id,
+            to_install,
+            status: SoftwareStatus::New,
+        }.insert_into(requests_softwares::table)
+            .execute(&mut self.connection)
     }
 
     pub(crate) fn remove_software_from_last_request(&mut self, soft_id: i32, user_id: i32) {
-        todo!()
     }
 
     pub(crate) fn upload_software_image(&mut self, soft_id: i32, image_url: &str) {
-        todo!()
     }
 
-    pub(crate) fn change_request_status(&mut self, request_id: i32, status: RequestStatus) {
-        todo!()
+    pub(crate) fn change_request_status(&mut self, request_id: i32, status: RequestStatus) -> QueryResult<usize> {
+        use crate::schema::requests::dsl::*;
+        diesel::update(
+            requests.find(request_id)
+        ).set(
+            status.eq(status)
+        ).execute(&mut self.connection)
     }
 
-    pub(crate) fn restore_software(&mut self, soft_id: i32) {
-        todo!()
+
+    pub(crate) fn delete_request(&mut self, request_id: i32) -> QueryResult<usize> {
+        use crate::schema::requests::dsl::*;
+        diesel::update(
+            requests.find(request_id)
+        ).set(
+            status.eq(RequestStatus::Deleted)
+        ).execute(&mut self.connection)
     }
 
+    pub(crate) fn add_software_to_request(&mut self, request_id: i32, soft_id: i32, to_install: bool) -> QueryResult<usize> {
+        #[derive(Insertable)]
+        #[table_name = "requests_softwares"]
+        #[diesel(check_for_backend(diesel::pg::Pg))]
+        struct InsertRequestSoftware {
+            software_id: i32,
+            request_id: i32,
+            to_install: bool,
+            status: SoftwareStatus,
+        }
 
+        use crate::schema::requests_softwares;
+        InsertRequestSoftware {
+            software_id: soft_id,
+            request_id,
+            to_install,
+            status: SoftwareStatus::New,
+        }.insert_into(requests_softwares::table)
+            .execute(&mut self.connection)
+    }
+
+    pub(crate) fn delete_software_from_request(&mut self, request_id: i32, soft_id: i32) -> QueryResult<usize> {
+        use crate::schema::requests_softwares::dsl::*;
+        diesel::update(
+            requests_softwares.filter(
+                request_id.eq(request_id)
+                    .and(
+                        software_id.eq(soft_id)
+                    )
+            )
+        ).set(
+            status.eq(SoftwareStatus::Canceled)
+        ).execute(&mut self.connection)
+    }
+
+    pub(crate) fn change_request_software_status(&mut self, request_id: i32, soft_id: i32, status: SoftwareStatus) -> QueryResult<usize> {
+        use crate::schema::requests_softwares::dsl::*;
+        diesel::update(
+            requests_softwares.filter(
+                request_id.eq(request_id)
+                    .and(
+                        software_id.eq(soft_id)
+                    )
+            )
+        ).set(
+            status.eq(status)
+        ).execute(&mut self.connection)
+    }
+
+    pub(crate) fn get_tag_by_id(&mut self, tag_id: i32) -> Option<Tag> {
+        use crate::schema::tags::dsl::*;
+        tags.find(tag_id)
+            .get_result::<Tag>(&mut self.connection)
+            .ok()
+    }
+
+    pub(crate) fn update_tag_by_id(&mut self, tag_id: i32, new_name: String) -> QueryResult<Tag> {
+        use crate::schema::tags::dsl::*;
+        diesel::update(
+            tags.find(tag_id)
+        ).set(
+            name.eq(new_name)
+        ).get_result::<Tag>(&mut self.connection)
+    }
 }
+
+
 
 fn establish_connection() -> PgConnection {
     dotenv().ok();

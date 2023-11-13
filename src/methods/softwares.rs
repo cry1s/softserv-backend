@@ -1,9 +1,10 @@
-use crate::database_controller::Database;
-use actix_web::{web, HttpResponse};
+use crate::controller::Database;
+use actix_web::{HttpResponse, Responder, web};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Mutex;
-use crate::models::db_types::OptionInsertSoftware;
+use crate::methods::Response;
+use crate::models::OptionInsertSoftware;
 
 #[derive(Deserialize)]
 pub(crate) struct SoftwareFilter {
@@ -76,18 +77,27 @@ pub(crate) async fn update_software(
             "error": "Неправильный ID"
         }));
     }
+    let id = id.unwrap();
 
     let mut db = pool.lock().unwrap();
-    match db.update_software_by_id(id.unwrap(), body.into_inner()) {
-        Ok(s) => {
-            HttpResponse::Ok().json(s)
-        }
-        Err(e) => {
-            HttpResponse::InternalServerError().json(json!({
-                "error": e.to_string()
-            }))
-        },
+    let software = db.get_software_by_id(id);
+    if software.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "ID не существует"
+        }));
     }
+    let software = software.unwrap();
+    let new_data = OptionInsertSoftware {
+        name: body.0.name.or(Option::from(software.name)),
+        active: body.0.active.or(Option::from(software.active)),
+        description: body.0.description.or(Option::from(software.description)),
+        version: body.0.version.or(Option::from(software.version)),
+        source: body.0.source.or(Option::from(software.source)),
+    };
+    let response = db.update_software_by_id(id, new_data);
+    response.response(json!({
+        "status": "ok"
+    }))
 }
 
 pub(crate) async fn new_software(
@@ -101,50 +111,102 @@ pub(crate) async fn new_software(
     }
 
     let mut db = pool.lock().unwrap();
-    match db.new_software(
+    let res = db.new_software(
         body.0.name.unwrap(),
         body.0.active.unwrap(),
         body.0.description.unwrap(),
         body.0.version.unwrap(),
         body.0.source.unwrap()
-    ) {
-        Ok(res) => HttpResponse::Ok().json(json!({
-            "software_id": res,
-        })),
-        Err(e) => HttpResponse::InternalServerError().json(json!({
-            "error": e.to_string()
-        }))
-    }
+    );
+    res.response(json!({
+        "status": "ok"
+    }))
+}
 
+#[derive(Deserialize)]
+pub(crate) struct AddTagPayload {
+    pub(crate) software_id: i32,
+    pub(crate) tag_id: i32,
 }
 
 pub(crate) async fn add_tag_to_software(
     pool: web::Data<Mutex<Database>>,
-    mut path: web::Path<SoftwareById>,
+    path: web::Path<AddTagPayload>,
 ) -> HttpResponse {
     let mut db = pool.lock().unwrap();
-    let software = db.get_software_by_id(path.id.take().unwrap().parse::<i32>().unwrap());
+    let response = db.add_tag_to_software(path.software_id, path.tag_id);
+    response.response(json!({
+        "status": "ok"
+    }))
+}
+
+pub(crate) async fn delete_tag(
+    pool: web::Data<Mutex<Database>>,
+    path: web::Path<AddTagPayload>,
+) -> HttpResponse {
+    let mut db = pool.lock().unwrap();
+    let response = db.delete_tag_from_software(path.software_id, path.tag_id);
+    response.response(json!({
+        "status": "ok"
+    }))
+}
+
+pub(crate) async fn delete_software(
+    pool: web::Data<Mutex<Database>>,
+    payload: web::Json<DeleteSoftPayload>,
+) -> impl Responder {
+    let response = pool.lock().unwrap().delete_software(payload.soft_id);
+    response.response(json!({
+        "status": "ok"
+    }))
+}
+
+#[derive(Deserialize)]
+pub(crate) struct DeleteSoftPayload {
+    soft_id: i32,
+}
+
+pub(crate) async fn add_image(
+    s3: web::Data<s3::bucket::Bucket>,
+    pool: web::Data<Mutex<Database>>,
+    mut path: web::Path<SoftwareById>,
+    body: web::Bytes,
+) -> HttpResponse {
+    if path.id.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error:": "Не представлен ID"
+        }));
+    }
+    let id = path.id.take().unwrap().parse::<i32>();
+    if id.is_err() {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Неправильный ID"
+        }));
+    }
+    let id = id.unwrap();
+    let mut db = pool.lock().unwrap();
+    let software = db.get_software_by_id(id);
     if software.is_none() {
         return HttpResponse::BadRequest().json(json!({
             "error": "ID не существует"
         }));
     }
     let software = software.unwrap();
-    let tag = db.create_tag("".to_string());
-    if tag.is_err() {
+    let name = format!("{}.png", software.id);
+    let response = s3.put_object(&name, &body).await;
+    if response.is_err() {
         return HttpResponse::InternalServerError().json(json!({
-            "error": tag.unwrap_err().to_string()
+            "error": "Ошибка при загрузке изображения"
         }));
     }
-    let tag = tag.unwrap();
-    let software_tag = db.add_tag_to_software(software.id, tag);
-    if software_tag.is_err() {
-        return HttpResponse::InternalServerError().json(json!({
-            "error": software_tag.unwrap_err().to_string()
-        }));
-    }
-    HttpResponse::Ok().json(json!({
-        "software_tag": software_tag.unwrap()
+    let response = db.update_software_by_id(id, OptionInsertSoftware {
+        name: None,
+        active: None,
+        description: None,
+        version: None,
+        source: Some(format!("https://software-registry.s3.eu-central-1.amazonaws.com/{}", name)),
+    });
+    response.response(json!({
+        "status": "ok"
     }))
-    
 }

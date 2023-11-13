@@ -1,10 +1,11 @@
-use crate::database_controller::Database;
-use crate::models::db_types::{InsertRequest, OptionInsertRequest, Request, RequestStatus, Software};
+use crate::controller::Database;
+use crate::models::{InsertRequest, OptionInsertRequest, Request, RequestStatus, Software, SoftwareStatus};
 use actix_web::{web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Mutex;
 use std::time::SystemTime;
+use super::Response;
 
 #[derive(Deserialize)]
 pub(crate) struct RequestFilter {
@@ -127,4 +128,173 @@ pub(crate) async fn update_request(
             }))
         }
     }
+}
+
+#[derive(Deserialize)]
+pub(crate) struct AddSoftwareToLastRequestPayload {
+    pub(crate) software_id: i32,
+    pub(crate) to_install: bool
+}
+pub(crate) async fn add_software_to_last_request(
+    pool: web::Data<Mutex<Database>>,
+    payload: web::Json<AddSoftwareToLastRequestPayload>,
+) -> HttpResponse {
+    let user_id = get_user_id_mock();
+    let mut db = pool.lock().unwrap();
+    let response = db.add_software_to_last_request(payload.software_id, user_id, payload.to_install);
+    response.response(json!({
+        "status": "ok"
+    }))
+}
+
+#[derive(Deserialize)]
+pub(crate) struct ChangeRequestStatusPayload {
+    pub(crate) status: Option<RequestStatus>,
+}
+
+pub(crate) async fn change_request_status(
+    pool: web::Data<Mutex<Database>>,
+    mut path: web::Path<RequestById>,
+    body: web::Json<ChangeRequestStatusPayload>,
+) -> HttpResponse {
+    if path.id.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error:": "Не представлен ID"
+        }));
+    }
+    let id = path.id.take().unwrap().parse::<i32>();
+    if id.is_err() {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Неправильный ID"
+        }));
+    }
+    if body.status.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Не представлен status"
+        }));
+    }
+    let _user_id = get_user_id_mock();
+    // TODO: check if user is moderator
+    let mut db = pool.lock().unwrap();
+    let response = db.change_request_status(id.unwrap(), body.status.unwrap());
+    response.response(json!({
+        "status": "ok"
+    }))
+}
+
+pub(crate) async fn delete_request(
+    pool: web::Data<Mutex<Database>>,
+    mut path: web::Path<RequestById>,
+) -> HttpResponse {
+    if path.id.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error:": "Не представлен ID"
+        }));
+    }
+    let id = path.id.take().unwrap().parse::<i32>();
+    if id.is_err() {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Неправильный ID"
+        }));
+    }
+
+    let mut db = pool.lock().unwrap();
+    let response = db.delete_request(id.unwrap());
+    response.response(json!({
+        "status": "ok"
+    }))
+}
+
+#[derive(Deserialize)]
+pub(crate) struct AddSoftwareToRequestPayload {
+    pub(crate) software_id: Option<i32>,
+    pub(crate) to_install: Option<bool>
+}
+
+pub(crate) async fn add_software_to_request(
+    pool: web::Data<Mutex<Database>>,
+    mut path: web::Path<(Option<i32>,)>,
+    payload: web::Json<AddSoftwareToRequestPayload>,
+) -> HttpResponse {
+    if path.0.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error:": "Не представлен request_id"
+        }));
+    }
+    if payload.software_id.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error:": "Не представлен software_id"
+        }));
+    }
+    let request_id = path.0.take().unwrap();
+    let mut db = pool.lock().unwrap();
+    let response = db.add_software_to_request(request_id, payload.software_id.unwrap(), payload.to_install.unwrap_or(true));
+    response.response(json!({
+        "status": "ok"
+    }))
+}
+
+pub(crate) async fn delete_software_from_request(
+    pool: web::Data<Mutex<Database>>,
+    mut path: web::Path<(Option<i32>, Option<i32>)>,
+) -> HttpResponse {
+    if path.0.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error:": "Не представлен request_id"
+        }));
+    }
+    if path.1.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error:": "Не представлен software_id"
+        }));
+    }
+    let request_id = path.0.take().unwrap();
+    let software_id = path.1.take().unwrap();
+    let mut db = pool.lock().unwrap();
+
+    let _user_id = get_user_id_mock();
+    // TODO check if user is moderator and owner of request
+
+    let response = db.delete_software_from_request(request_id, software_id);
+    response.response(json!({
+        "status": "ok"
+    }))
+}
+
+#[derive(Deserialize)]
+pub(crate) struct ChangeRequestSoftwareStatusPayload {
+    pub(crate) status: Option<SoftwareStatus>,
+}
+
+pub(crate) async fn change_request_software_status(
+    pool: web::Data<Mutex<Database>>,
+    mut path: web::Path<(Option<i32>, Option<i32>)>,
+    body: web::Json<ChangeRequestSoftwareStatusPayload>,
+) -> HttpResponse {
+    if path.0.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error:": "Не представлен request_id"
+        }));
+    }
+    if path.1.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error:": "Не представлен software_id"
+        }));
+    }
+    if body.status.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error:": "Не представлен status"
+        }));
+    }
+    let request_id = path.0.take().unwrap();
+    let software_id = path.1.take().unwrap();
+    let mut db = pool.lock().unwrap();
+
+    let _user_id = get_user_id_mock();
+    // TODO check if user is moderator and owner of request
+
+    let response = db.change_request_software_status(request_id, software_id, body.status.unwrap());
+    response.response(json!({
+        "status": "ok"
+    }))
 }

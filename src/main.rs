@@ -1,13 +1,11 @@
 use std::sync::Mutex;
 
-use crate::methods::others::not_found;
-use crate::methods::softwares::SoftwareFilter;
-use crate::models::db_types::Software;
-use crate::models::web_types::SoftwareCard;
+use crate::models::Software;
 use actix_files as fs;
-use actix_web::{get, middleware::Logger, post, web, App, HttpResponse, HttpServer, Responder};
-use database_controller::Database;
-use handlebars::Handlebars;
+use actix_web::{App, HttpResponse, HttpServer, middleware::Logger, web};
+use s3::{Bucket, Region};
+use s3::creds::Credentials;
+use controller::Database;
 use serde::Deserialize;
 
 #[actix_web::main]
@@ -16,13 +14,10 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
-            .app_data(web::Data::new(view::init_handlebars()))
             .app_data(web::Data::new(Mutex::new(Database::new())))
-            .default_service(web::route().to(not_found))
+            .app_data(web::Data::new(connect_to_bucket()))
+            .default_service(web::route().to(HttpResponse::NotFound))
             .service(fs::Files::new("/static", "./resources/static"))
-            .service(index)
-            .service(get_soft)
-            .service(delete_soft)
             .route("/softwares", web::get().to(methods::softwares::all_softwares))
             .route(
                 "/software",
@@ -32,80 +27,51 @@ async fn main() -> std::io::Result<()> {
                 web::resource("/software/{id}")
                     .route(web::get().to(methods::softwares::get_software))
                     .route(web::post().to(methods::softwares::update_software))
+                    .route(web::delete().to(methods::softwares::delete_software)),
             )
+            .route("/software/{soft_id}/add_tag/{tag_id}", web::post().to(methods::softwares::add_tag_to_software))
+            .route("/software/{soft_id}/remove_tag/{tag_id}", web::delete().to(methods::softwares::delete_tag))
+            .route("/software/{soft_id}/add_image", web::put().to(methods::softwares::add_image))
             .route("/requests", web::get().to(methods::requests::get_all_requests))
             .route("/request", web::post().to(methods::requests::new_request))
+            .route("/request/add", web::post().to(methods::requests::add_software_to_last_request))
             .service(
                 web::resource("/request/{id}")
                     .route(web::get().to(methods::requests::get_request))
                     .route(web::post().to(methods::requests::update_request))
+                    .route(web::delete().to(methods::requests::delete_request))
+                    .route(web::patch().to(methods::requests::change_request_status))
             )
+            .route("/request/{request_id}/add_software/", web::post().to(methods::requests::add_software_to_request))
+            .route("/request/{request_id}/remove_software/{software_id}", web::delete().to(methods::requests::delete_software_from_request))
+            .route("/request/{request_id}/change_status/{software_id}", web::patch().to(methods::requests::change_request_software_status))
             .route("/tags/{input}", web::get().to(methods::tags::tags_by_input))
-            
+            .route("/tag", web::post().to(methods::tags::new_tag))
+            .service(
+                web::resource("/tag/{id}")
+                    .route(web::get().to(methods::tags::get_tag))
+                    .route(web::post().to(methods::tags::update_tag))
+            )
     })
     .bind(("0.0.0.0", 8080))?
     .run()
     .await
 }
 
-pub(crate) mod database_controller;
+pub(crate) mod controller;
 pub(crate) mod methods;
 pub(crate) mod models;
 pub(crate) mod schema;
-pub(crate) mod view;
 
-#[derive(Deserialize)]
-struct IndexQuery {
-    q: Option<String>,
-}
-
-#[get("/")]
-async fn index(
-    hb: web::Data<Handlebars<'_>>,
-    pool: web::Data<Mutex<Database>>,
-    mut query: web::Query<IndexQuery>,
-) -> impl Responder {
-    let search = query.q.take().unwrap_or("".to_string());
-    let software_list = {
-        if !search.is_empty() {
-            pool.lock().unwrap().get_softwares_by_name(&search)
-        } else {
-            pool.lock()
-                .unwrap()
-                .get_all_active_softwares(SoftwareFilter { search: None })
-        }
-    };
-    let software_list = software_list
-        .into_iter()
-        .map(|software| SoftwareCard::new(software, pool.clone()))
-        .collect();
-
-    view::index(hb, software_list, search)
-}
-#[get("/soft/{soft_id}")]
-pub(crate) async fn get_soft(
-    hb: web::Data<Handlebars<'_>>,
-    pool: web::Data<Mutex<Database>>,
-    path: web::Path<(i32,)>,
-) -> impl Responder {
-    let (id,) = path.into_inner();
-    let soft: Option<Software> = pool.lock().unwrap().get_software_by_id(id);
-    match soft {
-        Some(soft) => view::soft(hb, SoftwareCard::new(soft, pool)),
-        None => view::not_found(hb),
-    }
-}
-
-#[derive(Deserialize)]
-pub(crate) struct DeleteSoftPayload {
-    soft_id: i32,
-}
-
-#[post("/delete_soft/")]
-pub(crate) async fn delete_soft(
-    pool: web::Data<Mutex<Database>>,
-    payload: web::Json<DeleteSoftPayload>,
-) -> impl Responder {
-    pool.lock().unwrap().delete_software(payload.soft_id);
-    HttpResponse::Ok()
+fn connect_to_bucket() -> Bucket {
+    Bucket::new("bucket", Region::Custom {
+        region: "minio".to_string(),
+        endpoint: "http://localhost:9000".to_owned(),
+    }, Credentials {
+        access_key: Some("sglwG7iKSo4jJv9aedym".to_string()),
+        secret_key: Some("L7IL1UjCaSUaiZCZjlN27vdgEOfSLp7nSCgZqdj9".to_string()),
+        security_token: None,
+        session_token: None,
+        expiration: None,
+    }).unwrap()
 }
