@@ -1,10 +1,12 @@
 use crate::controller::Database;
+use actix_multipart::Multipart;
 use actix_web::{HttpResponse, Responder, web};
 use serde::Deserialize;
 use serde_json::json;
-use std::sync::Mutex;
+use std::{sync::Mutex};
 use crate::methods::Response;
 use crate::models::OptionInsertSoftware;
+use futures::{StreamExt, TryStreamExt as _};
 
 #[derive(Deserialize)]
 pub(crate) struct SoftwareFilter {
@@ -165,8 +167,8 @@ pub(crate) async fn add_image(
     s3: web::Data<s3::bucket::Bucket>,
     pool: web::Data<Mutex<Database>>,
     mut path: web::Path<(Option<String>,)>,
-    body: web::Bytes,
-) -> HttpResponse {
+    mut body: Multipart
+) -> HttpResponse{
     if path.0.is_none() {
         return HttpResponse::BadRequest().json(json!({
             "error:": "Не представлен ID"
@@ -179,25 +181,38 @@ pub(crate) async fn add_image(
         }));
     }
     let id = id.unwrap();
-    let mut db = pool.lock().unwrap();
-    let software = db.get_software_by_id(id);
-    if software.is_none() {
+    let mut file_data = Vec::<u8>::new();
+    while let Some(mut field) = body.try_next().await.unwrap() {
+        let content_disposition = field.content_disposition();
+        let field_name = content_disposition.get_name();
+        if field_name.is_none() {
+            return HttpResponse::BadRequest().json(json!({
+                "error": "Неправильное поле"
+            }));
+        }
+        let field_name = field_name.unwrap();
+        if field_name == "file" {
+            while let Some(chunk) = field.next().await {
+                if chunk.is_err() {
+                    return HttpResponse::BadRequest().json(json!({
+                        "error": chunk.err().unwrap().to_string()
+                    }));
+                }
+                file_data.extend_from_slice(chunk.unwrap().as_ref());
+            }
+        }
+    }
+    let resp = s3.put_object(format!("{}.png", id), &file_data).await;
+    if resp.is_err() {
         return HttpResponse::BadRequest().json(json!({
-            "error": "ID не существует"
+            "error": resp.err().unwrap().to_string()
         }));
     }
-    let software = software.unwrap();
-    let name = format!("{}.png", software.software.id);
-    drop(db);
-    let response = s3.put_object(&name, &body).await;
+    let url = format!("http://localhost:9000/bucket/{}.png", id);
     let mut db = pool.lock().unwrap();
-    if response.is_err() {
-        return HttpResponse::InternalServerError().json(json!({
-            "error": response.err().unwrap().to_string()
-        }));
-    }
-    let response = db.add_logo_to_software(id, &format!("http://localhost:9000/bucket/{}", name));
-    response.response(json!({
-        "status": "ok"
+    let response = db.add_logo_to_software(id, &url);
+    resp.response(json!({
+        "status": "ok",
+        "url": url
     }))
 }
