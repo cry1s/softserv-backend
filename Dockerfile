@@ -21,6 +21,5 @@ RUN /usr/bin/magicpak -v /bin/server /bundle
 
 FROM scratch as final
 COPY --from=0 /bundle /.
-COPY ./resources ./resources
 EXPOSE 8080
 ENTRYPOINT ["/bin/server"]
