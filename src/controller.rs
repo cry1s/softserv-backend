@@ -105,7 +105,13 @@ impl Database {
         let requests: Vec<Request> = query.load(&mut self.connection).unwrap();
         let mut requests_with_softwares = vec![];
         for request in requests {
+            let username = crate::schema::users::dsl::users
+                .find(request.user_id)
+                .select(crate::schema::users::dsl::username)
+                .first::<String>(&mut self.connection)
+                .unwrap();
             requests_with_softwares.push(RequestWithSoftwares {
+                username,
                 softwares: self.get_softwares_by_request(&request),
                 request,
             })
@@ -131,6 +137,13 @@ impl Database {
             .get_result::<Request>(&mut self.connection)
             .ok()?;
         Some(RequestWithSoftwares {
+            username: {
+                crate::schema::users::dsl::users
+                    .find(request.user_id)
+                    .select(crate::schema::users::dsl::username)
+                    .first::<String>(&mut self.connection)
+                    .unwrap()
+            },
             softwares: self.get_softwares_by_request(&request),
             request,
         })

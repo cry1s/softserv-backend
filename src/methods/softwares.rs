@@ -3,7 +3,7 @@ use actix_multipart::Multipart;
 use actix_web::{HttpResponse, Responder, web};
 use serde::Deserialize;
 use serde_json::json;
-use std::{sync::Mutex};
+use std::sync::Mutex;
 use crate::methods::Response;
 use crate::models::OptionInsertSoftware;
 use futures::{StreamExt, TryStreamExt as _};
@@ -211,7 +211,7 @@ pub(crate) async fn add_image(
     let url = format!("http://localhost:9000/bucket/{}.png", id);
     let mut db = pool.lock().unwrap();
     let response = db.add_logo_to_software(id, &url);
-    resp.response(json!({
+    response.response(json!({
         "status": "ok",
         "url": url
     }))

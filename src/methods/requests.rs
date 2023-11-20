@@ -33,6 +33,7 @@ pub(crate) struct RequestById {
 pub(crate) struct RequestWithSoftwares {
     pub(crate) softwares: Vec<Software>,
     pub(crate) request: Request,
+    pub(crate) username: String,
 }
 
 pub(crate) async fn get_request(
