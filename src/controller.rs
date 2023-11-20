@@ -89,6 +89,8 @@ impl Database {
         let mut query = dsl::requests.into_boxed();
         if let Some(filter_status) = filter.status {
             query = query.filter(dsl::status.eq(filter_status))
+        } else {
+            query = query.filter(dsl::status.ne(RequestStatus::Deleted))
         }
         if let Some(create_date_start) = filter.create_date_start {
             let create_date_start = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(create_date_start as u64);
