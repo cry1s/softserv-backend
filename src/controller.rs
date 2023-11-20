@@ -8,6 +8,8 @@ use crate::Software;
 use diesel::{prelude::*, sql_query, PgConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use dotenvy::dotenv;
+use serde_json::Value;
+use serde_json::json;
 use std::env;
 use std::time::SystemTime;
 use serde::{Deserialize, Serialize};
@@ -23,7 +25,7 @@ impl Database {
         Database::default()
     }
 
-    pub(crate) fn get_all_active_softwares(&mut self, filter: SoftwareFilter) -> Vec<SoftwareWithTags> {
+    pub(crate) fn get_all_active_softwares(&mut self, filter: SoftwareFilter) -> Value {
         use crate::schema::{softwares, softwares_tags, tags};
         let mut query = softwares::dsl::softwares.into_boxed();
         if let Some(search) = filter.search {
@@ -48,7 +50,21 @@ impl Database {
                 tags: tags.into_iter().map(|tag| tag.name).collect(),
             })
         }
-        softwares_with_tags
+        let user_id = get_user_id();
+        let requestid = crate::schema::requests::dsl::requests
+            .filter(
+                crate::schema::requests::dsl::user_id.eq(user_id)
+                    .and(
+                        crate::schema::requests::dsl::status.eq(RequestStatus::Created)
+                    )
+            )
+            .select(crate::schema::requests::dsl::id)
+            .first::<i32>(&mut self.connection)
+            .ok();
+        json!({
+            "softwares": softwares_with_tags,
+            "request_id": requestid
+        })
     }
 
     pub(crate) fn get_software_by_id(&mut self, id: i32) -> Option<SoftwareWithTags> {
@@ -382,6 +398,10 @@ impl Database {
             moderator_id.eq(mod_id)
         ).execute(&mut self.connection)
     }
+}
+
+fn get_user_id() -> i32 {
+    1 // mock
 }
 
 
