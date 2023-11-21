@@ -1,12 +1,12 @@
 use crate::controller::Database;
+use crate::methods::Response;
+use crate::models::OptionInsertSoftware;
 use actix_multipart::Multipart;
-use actix_web::{HttpResponse, Responder, web};
+use actix_web::{web, HttpResponse, Responder};
+use futures::{StreamExt, TryStreamExt as _};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Mutex;
-use crate::methods::Response;
-use crate::models::OptionInsertSoftware;
-use futures::{StreamExt, TryStreamExt as _};
 
 #[derive(Deserialize)]
 pub(crate) struct SoftwareFilter {
@@ -59,7 +59,7 @@ pub(crate) async fn get_software(
 pub(crate) async fn update_software(
     pool: web::Data<Mutex<Database>>,
     mut path: web::Path<SoftwareById>,
-    body: web::Json<OptionInsertSoftware>
+    body: web::Json<OptionInsertSoftware>,
 ) -> HttpResponse {
     if path.id.is_none() {
         return HttpResponse::BadRequest().json(json!({
@@ -92,7 +92,10 @@ pub(crate) async fn update_software(
     let new_data = OptionInsertSoftware {
         name: body.0.name.or(Option::from(software.software.name)),
         active: body.0.active.or(Option::from(software.software.active)),
-        description: body.0.description.or(Option::from(software.software.description)),
+        description: body
+            .0
+            .description
+            .or(Option::from(software.software.description)),
         version: body.0.version.or(Option::from(software.software.version)),
         source: body.0.source.or(Option::from(software.software.source)),
     };
@@ -104,7 +107,7 @@ pub(crate) async fn update_software(
 
 pub(crate) async fn new_software(
     pool: web::Data<Mutex<Database>>,
-    body: web::Json<OptionInsertSoftware>
+    body: web::Json<OptionInsertSoftware>,
 ) -> HttpResponse {
     if body.any_none() {
         return HttpResponse::BadRequest().json(json!({
@@ -118,7 +121,7 @@ pub(crate) async fn new_software(
         body.0.active.unwrap(),
         body.0.description.unwrap(),
         body.0.version.unwrap(),
-        body.0.source.unwrap()
+        body.0.source.unwrap(),
     );
     res.response(json!({
         "status": "ok"
@@ -167,8 +170,8 @@ pub(crate) async fn add_image(
     s3: web::Data<s3::bucket::Bucket>,
     pool: web::Data<Mutex<Database>>,
     mut path: web::Path<(Option<String>,)>,
-    mut body: Multipart
-) -> HttpResponse{
+    mut body: Multipart,
+) -> HttpResponse {
     if path.0.is_none() {
         return HttpResponse::BadRequest().json(json!({
             "error:": "Не представлен ID"

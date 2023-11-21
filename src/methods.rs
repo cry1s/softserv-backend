@@ -1,5 +1,5 @@
-use serde::Serialize;
 use actix_web::HttpResponse;
+use serde::Serialize;
 use serde_json::json;
 
 pub mod requests;
@@ -16,7 +16,7 @@ impl<T, E: std::fmt::Display> Response for Result<T, E> {
             Ok(_) => HttpResponse::Ok().json(ok),
             Err(e) => HttpResponse::InternalServerError().json(json!({
                 "error": e.to_string()
-            }))
+            })),
         }
     }
 }

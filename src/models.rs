@@ -1,9 +1,6 @@
-
 use std::time::SystemTime;
 
-
 use diesel::prelude::*;
-
 
 use diesel_derive_enum::DbEnum;
 use serde::{Deserialize, Serialize};
@@ -18,18 +15,6 @@ pub(crate) enum RequestStatus {
     Completed,
     Canceled,
     Deleted,
-}
-
-#[derive(Debug, DbEnum, Clone, Copy, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "snake_case")]
-#[ExistingTypePath = "crate::schema::sql_types::SoftStatusEnum"]
-#[DbValueStyle = "snake_case"]
-pub(crate) enum SoftwareStatus {
-    New,
-    Processed,
-    Completed,
-    Failed,
-    Canceled,
 }
 
 #[derive(Debug, Selectable, Queryable, Serialize, Deserialize)]
@@ -77,10 +62,6 @@ pub(crate) struct OptionInsertRequest {
 pub(crate) struct RequestSoftware {
     software_id: i32,
     request_id: i32,
-    to_install: bool,
-    status: SoftwareStatus,
-    created_at: SystemTime,
-    updated_at: SystemTime,
 }
 
 #[derive(Insertable, Debug, Selectable, Queryable, Serialize)]
@@ -114,11 +95,19 @@ pub(crate) struct AddImageSoftware {
 
 impl OptionInsertSoftware {
     pub(crate) fn any_none(&self) -> bool {
-        self.description.is_none() || self.active.is_none() || self.name.is_none() || self.version.is_none() || self.source.is_none()
+        self.description.is_none()
+            || self.active.is_none()
+            || self.name.is_none()
+            || self.version.is_none()
+            || self.source.is_none()
     }
 
     pub(crate) fn all_none(&self) -> bool {
-        self.description.is_none() && self.active.is_none() && self.name.is_none() && self.version.is_none() && self.source.is_none()
+        self.description.is_none()
+            && self.active.is_none()
+            && self.name.is_none()
+            && self.version.is_none()
+            && self.source.is_none()
     }
 }
 
@@ -146,18 +135,14 @@ pub(crate) struct Software {
 pub(crate) struct SoftwareTag {
     software_id: i32,
     tag_id: i32,
-    created_at: SystemTime,
-    updated_at: SystemTime,
 }
 
-#[derive(Identifiable, Serialize, Debug, Selectable, Queryable)]
+#[derive(Identifiable, Serialize, Selectable, Queryable)]
 #[diesel(table_name = crate::schema::tags)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub(crate) struct Tag {
-    id: i32,
+    pub(crate) id: i32,
     pub(crate) name: String,
-    created_at: SystemTime,
-    updated_at: SystemTime,
 }
 
 #[derive(Serialize, Debug, Selectable, Queryable)]

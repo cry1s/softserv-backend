@@ -47,13 +47,9 @@ CREATE TABLE tags (
     updated_at TIMESTAMP NOT NULL DEFAULT now()
 );
 
-CREATE TYPE soft_status_enum AS ENUM ('new', 'processed', 'completed', 'failed', 'canceled');
-
 CREATE TABLE requests_softwares (
     software_id INTEGER NOT NULL REFERENCES softwares(id),
     request_id INTEGER NOT NULL REFERENCES requests(id),
-    to_install BOOLEAN NOT NULL,
-    status soft_status_enum NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT now(),
     updated_at TIMESTAMP NOT NULL DEFAULT now(),
     PRIMARY KEY (software_id, request_id)

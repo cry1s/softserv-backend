@@ -1,11 +1,11 @@
+use super::Response;
 use crate::controller::Database;
-use crate::models::{InsertRequest, OptionInsertRequest, Request, RequestStatus, Software, SoftwareStatus};
+use crate::models::{InsertRequest, OptionInsertRequest, Request, RequestStatus, Software};
 use actix_web::{web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Mutex;
 use std::time::SystemTime;
-use super::Response;
 
 #[derive(Deserialize)]
 pub(crate) struct RequestFilter {
@@ -120,21 +120,16 @@ pub(crate) async fn update_request(
 
     let mut db = pool.lock().unwrap();
     match db.update_request_by_id(id.unwrap(), body.into_inner()) {
-        Ok(s) => {
-            HttpResponse::Ok().json(s)
-        }
-        Err(e) => {
-            HttpResponse::InternalServerError().json(json!({
-                "error": e.to_string()
-            }))
-        }
+        Ok(s) => HttpResponse::Ok().json(s),
+        Err(e) => HttpResponse::InternalServerError().json(json!({
+            "error": e.to_string()
+        })),
     }
 }
 
 #[derive(Deserialize)]
 pub(crate) struct AddSoftwareToLastRequestPayload {
     pub(crate) software_id: i32,
-    pub(crate) to_install: bool
 }
 pub(crate) async fn add_software_to_last_request(
     pool: web::Data<Mutex<Database>>,
@@ -142,7 +137,7 @@ pub(crate) async fn add_software_to_last_request(
 ) -> HttpResponse {
     let user_id = get_user_id_mock();
     let mut db = pool.lock().unwrap();
-    let response = db.add_software_to_last_request(payload.software_id, user_id, payload.to_install);
+    let response = db.add_software_to_last_request(payload.software_id, user_id);
     response.response(json!({
         "status": "ok"
     }))
@@ -179,7 +174,10 @@ pub(crate) async fn change_request_status(
     let mut db = pool.lock().unwrap();
     let is_moderator = db.is_moderator(_user_id);
 
-    if !is_moderator && (body.status.unwrap() != RequestStatus::Processed || body.status.unwrap() != RequestStatus::Canceled) {
+    if !is_moderator
+        && (body.status.unwrap() != RequestStatus::Processed
+            || body.status.unwrap() != RequestStatus::Canceled)
+    {
         return HttpResponse::BadRequest().json(json!({
             "error": "Недостаточно прав"
         }));
@@ -198,7 +196,9 @@ pub(crate) async fn change_request_status(
             upd.status = Some(RequestStatus::Completed);
             upd.completed_at = Some(SystemTime::now());
         }
-        (cur, RequestStatus::Canceled) if cur != RequestStatus::Deleted || cur != RequestStatus::Created => {
+        (cur, RequestStatus::Canceled)
+            if cur != RequestStatus::Deleted || cur != RequestStatus::Created =>
+        {
             upd.status = Some(RequestStatus::Canceled);
         }
         _ => {
@@ -241,7 +241,6 @@ pub(crate) async fn delete_request(
 #[derive(Deserialize)]
 pub(crate) struct AddSoftwareToRequestPayload {
     pub(crate) software_id: Option<i32>,
-    pub(crate) to_install: Option<bool>
 }
 
 pub(crate) async fn add_software_to_request(
@@ -261,7 +260,7 @@ pub(crate) async fn add_software_to_request(
     }
     let request_id = path.0.take().unwrap();
     let mut db = pool.lock().unwrap();
-    let response = db.add_software_to_request(request_id, payload.software_id.unwrap(), payload.to_install.unwrap_or(true));
+    let response = db.add_software_to_request(request_id, payload.software_id.unwrap());
     response.response(json!({
         "status": "ok"
     }))
@@ -289,44 +288,6 @@ pub(crate) async fn delete_software_from_request(
     // TODO check if user is moderator and owner of request
 
     let response = db.delete_software_from_request(request_id, software_id);
-    response.response(json!({
-        "status": "ok"
-    }))
-}
-
-#[derive(Deserialize)]
-pub(crate) struct ChangeRequestSoftwareStatusPayload {
-    pub(crate) status: Option<SoftwareStatus>,
-}
-
-pub(crate) async fn change_request_software_status(
-    pool: web::Data<Mutex<Database>>,
-    mut path: web::Path<(Option<i32>, Option<i32>)>,
-    body: web::Json<ChangeRequestSoftwareStatusPayload>,
-) -> HttpResponse {
-    if path.0.is_none() {
-        return HttpResponse::BadRequest().json(json!({
-            "error:": "Не представлен request_id"
-        }));
-    }
-    if path.1.is_none() {
-        return HttpResponse::BadRequest().json(json!({
-            "error:": "Не представлен software_id"
-        }));
-    }
-    if body.status.is_none() {
-        return HttpResponse::BadRequest().json(json!({
-            "error:": "Не представлен status"
-        }));
-    }
-    let request_id = path.0.take().unwrap();
-    let software_id = path.1.take().unwrap();
-    let mut db = pool.lock().unwrap();
-
-    let _user_id = get_user_id_mock();
-    // TODO check if user is moderator and owner of request
-
-    let response = db.change_request_software_status(request_id, software_id, body.status.unwrap());
     response.response(json!({
         "status": "ok"
     }))

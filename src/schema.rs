@@ -4,10 +4,6 @@ pub mod sql_types {
     #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "request_status_enum"))]
     pub struct RequestStatusEnum;
-
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "soft_status_enum"))]
-    pub struct SoftStatusEnum;
 }
 
 diesel::table! {
@@ -28,14 +24,9 @@ diesel::table! {
 }
 
 diesel::table! {
-    use diesel::sql_types::*;
-    use super::sql_types::SoftStatusEnum;
-
     requests_softwares (software_id, request_id) {
         software_id -> Int4,
         request_id -> Int4,
-        to_install -> Bool,
-        status -> SoftStatusEnum,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }

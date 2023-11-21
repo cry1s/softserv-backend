@@ -10,11 +10,10 @@ use crate::methods::Response;
 pub(crate) async fn tags_by_input(
     pool: web::Data<Mutex<Database>>,
     input: web::Path<String>,
-) -> HttpResponse 
-{
+) -> HttpResponse {
     let mut db = pool.lock().unwrap();
     let tags = db.get_tags_by_input(input.into_inner());
-    HttpResponse::Ok().json(tags)    
+    HttpResponse::Ok().json(tags)
 }
 
 #[derive(Deserialize)]
@@ -25,8 +24,7 @@ pub(crate) struct Tag {
 pub(crate) async fn new_tag(
     pool: web::Data<Mutex<Database>>,
     body: web::Json<Tag>,
-) -> HttpResponse 
-{
+) -> HttpResponse {
     let mut db = pool.lock().unwrap();
     let tag = db.create_tag(body.name.clone());
     tag.response(json!({
@@ -37,8 +35,7 @@ pub(crate) async fn new_tag(
 pub(crate) async fn get_tag(
     pool: web::Data<Mutex<Database>>,
     path: web::Path<i32>,
-) -> HttpResponse
-{
+) -> HttpResponse {
     let mut db = pool.lock().unwrap();
     let tag = db.get_tag_by_id(path.into_inner());
     match tag {
@@ -51,8 +48,7 @@ pub(crate) async fn update_tag(
     pool: web::Data<Mutex<Database>>,
     path: web::Path<i32>,
     tag: web::Json<Tag>,
-) -> HttpResponse
-{
+) -> HttpResponse {
     let mut db = pool.lock().unwrap();
     let tag = db.update_tag_by_id(path.into_inner(), tag.name.clone());
     match tag {
