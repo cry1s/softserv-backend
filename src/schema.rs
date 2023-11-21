@@ -78,7 +78,7 @@ diesel::table! {
         id -> Int4,
         username -> Varchar,
         password -> Varchar,
-        avatar -> Varchar,
+        avatar -> Nullable<Varchar>,
         moderator -> Bool,
         created_at -> Timestamp,
         updated_at -> Timestamp,

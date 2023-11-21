@@ -25,6 +25,17 @@ impl Database {
         Database::default()
     }
 
+    pub(crate) fn is_moderator(&mut self, id: i32) -> bool {
+        use crate::schema::users::dsl::*;
+        let user = users.find(id)
+            .get_result::<crate::models::User>(&mut self.connection)
+            .ok();
+        if user.is_none() {
+            return false;
+        };
+        user.unwrap().moderator
+    }
+
     pub(crate) fn get_all_active_softwares(&mut self, filter: SoftwareFilter) -> Value {
         use crate::schema::{softwares, softwares_tags, tags};
         let mut query = softwares::dsl::softwares.into_boxed();

@@ -164,10 +164,11 @@ pub(crate) struct Tag {
 #[diesel(table_name = crate::schema::users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub(crate) struct User {
-    id: i32,
-    username: String,
-    password: String,
-    moderator: bool,
+    pub(crate) id: i32,
+    pub(crate) username: String,
+    pub(crate) password: String,
+    pub(crate) avatar: Option<String>,
+    pub(crate) moderator: bool,
     created_at: SystemTime,
     updated_at: SystemTime,
 }

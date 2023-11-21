@@ -3,8 +3,8 @@ CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     username VARCHAR NOT NULL UNIQUE,
     password VARCHAR NOT NULL,
-    avatar VARCHAR NOT NULL,
-    moderator BOOLEAN NOT NULL,
+    avatar VARCHAR,
+    moderator BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT now(),
     updated_at TIMESTAMP NOT NULL DEFAULT now()
 );
@@ -13,14 +13,17 @@ CREATE TYPE request_status_enum AS ENUM ('created', 'processed', 'completed', 'c
 
 CREATE TABLE requests (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id),
-    moderator_id INTEGER REFERENCES users(id),
+    user_id INTEGER NOT NULL,
+    moderator_id INTEGER,
     status request_status_enum NOT NULL DEFAULT 'created',
     ssh_address VARCHAR,
     ssh_password VARCHAR,
     created_at TIMESTAMP NOT NULL DEFAULT now(),
-    processed_at TIMESTAMP NOT NULL DEFAULT now(),
-    completed_at TIMESTAMP NOT NULL DEFAULT now()
+    processed_at TIMESTAMP,
+    completed_at TIMESTAMP,
+
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (moderator_id) REFERENCES users(id)
 );
 
 CREATE TABLE softwares (
