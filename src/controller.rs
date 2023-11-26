@@ -305,15 +305,30 @@ impl Database {
         }
 
         use crate::schema::requests_softwares;
-        let request_id = crate::schema::requests::dsl::requests
-            .filter(
-                crate::schema::requests::dsl::user_id
-                    .eq(user_id)
-                    .and(crate::schema::requests::dsl::status.eq(RequestStatus::Created)),
-            )
-            .order(crate::schema::requests::dsl::created_at.desc())
-            .select(crate::schema::requests::dsl::id)
-            .first::<i32>(&mut self.connection)?;
+        let request_id;
+        loop {
+            let id = crate::schema::requests::dsl::requests
+                .filter(
+                    crate::schema::requests::dsl::user_id
+                        .eq(user_id)
+                        .and(crate::schema::requests::dsl::status.eq(RequestStatus::Created)),
+                )
+                .order(crate::schema::requests::dsl::created_at.desc())
+                .select(crate::schema::requests::dsl::id)
+                .first::<i32>(&mut self.connection);
+
+            if let Ok(id) = id {
+                request_id = id;
+                break;
+            }
+
+            self.new_request(InsertRequest {
+                user_id,
+                ssh_address: None,
+                ssh_password: None,
+            })
+            .unwrap();
+        }
 
         InsertRequestSoftware {
             software_id: soft_id,
