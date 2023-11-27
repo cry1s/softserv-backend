@@ -51,9 +51,7 @@ pub(crate) async fn get_software(
             "error": "ID не существует"
         }));
     }
-    HttpResponse::Ok().json(json!({
-        "software": software.unwrap()
-    }))
+    HttpResponse::Ok().json(software.unwrap())
 }
 
 pub(crate) async fn update_software(
