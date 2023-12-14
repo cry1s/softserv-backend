@@ -51,6 +51,9 @@ impl Database {
     pub(crate) fn get_all_active_softwares(&mut self, filter: SoftwareFilter) -> Value {
         use crate::schema::{softwares, softwares_tags, tags};
         let mut query = softwares::dsl::softwares.into_boxed();
+
+        query = query.filter(softwares::dsl::active.eq(true));
+
         if let Some(search) = filter.search {
             let software_ids = softwares_tags::dsl::softwares_tags
                 .inner_join(tags::dsl::tags.on(tags::id.eq(softwares_tags::tag_id)))
