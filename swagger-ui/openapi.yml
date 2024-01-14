@@ -1,0 +1,525 @@
+openapi: 3.0.3
+servers:
+  - url: http://localhost:8080
+info:
+  title: Softserv
+  version: 1.0.0
+tags:
+  - name: softwares
+    description: Softwares
+  - name: requests
+    description: Requests
+  - name: tags
+    description: Tags
+  - name: auth
+    description: Auth
+paths:
+  /softwares:
+    get:
+      summary: Get all softwares
+      tags:
+        - softwares
+      operationId: getAllSoftwares
+      responses:
+        '200':
+          description: Successful response
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+  /software:
+    post:
+      tags:
+        - softwares
+      summary: Create a new software
+      operationId: createNewSoftware
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Software'
+      responses:
+        '200':
+          description: Successful response
+  /software/{id}:
+    get:
+      tags:
+        - softwares
+      summary: Get a software by ID
+      operationId: getSoftwareById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Software ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+    put:
+      tags:
+        - softwares
+      summary: Update a software by ID
+      operationId: updateSoftwareById
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Software'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Software ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+    delete:
+      tags:
+        - softwares
+      summary: Delete a software by ID
+      operationId: deleteSoftwareById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Software ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+  /software/{soft_id}/add_tag/{tag_id}:
+    post:
+      tags:
+        - softwares
+        - tags
+      summary: Add tag to software
+      operationId: addTagToSoftware
+      parameters:
+        - name: soft_id
+          in: path
+          required: true
+          description: Software ID
+          schema:
+            type: integer
+        - name: tag_id
+          in: path
+          required: true
+          description: Tag ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+  /software/{soft_id}/remove_tag/{tag_id}:
+    delete:
+      tags:
+        - softwares
+        - tags
+      summary: Remove tag from software
+      operationId: removeTagFromSoftware
+      parameters:
+        - name: soft_id
+          in: path
+          required: true
+          description: Software ID
+          schema:
+            type: integer
+        - name: tag_id
+          in: path
+          required: true
+          description: Tag ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+  /software/{soft_id}/add_image:
+    put:
+      tags:
+        - softwares
+      summary: Add image to software
+      operationId: addImageToSoftware
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              format: binary
+      parameters:
+        - name: soft_id
+          in: path
+          required: true
+          description: Software ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+  /requests:
+    get:
+      tags:
+        - requests
+      summary: Get all requests
+      operationId: getAllRequests
+      responses:
+        '200':
+          description: Successful response
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: create_date_start
+          in: query
+          schema:
+            type: number
+        - name: create_date_end
+          in: query
+          schema:
+            type: number
+  /request:
+    post:
+      tags:
+        - requests
+      summary: Create a new request
+      operationId: createNewRequest
+      responses:
+        '200':
+          description: Successful response
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewRequest'
+  /request/add:
+    post:
+      tags:
+        - requests
+      summary: Add software to last request
+      operationId: addSoftwareToLastRequest
+      responses:
+        '200':
+          description: Successful response
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSoftwareToLastRequest'
+  /request/{id}:
+    get:
+      tags:
+        - requests
+      summary: Get a request by ID
+      operationId: getRequestById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Request ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+    put:
+      tags:
+        - requests
+      summary: Update a request by ID
+      operationId: updateRequestById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Request ID
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRequest'
+      responses:
+        '200':
+          description: Successful response
+    delete:
+      tags:
+        - requests
+      summary: Delete a request by ID
+      operationId: deleteRequestById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Request ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+    patch:
+      tags:
+        - requests
+      summary: Change request status
+      operationId: changeRequestStatus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Request ID
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRequestStatus'
+      responses:
+        '200':
+          description: Successful response
+  /request/{request_id}/add_software/:
+    post:
+      tags:
+        - requests
+        - softwares
+      summary: Add software to request
+      operationId: addSoftwareToRequest
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          description: Request ID
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSoftwareToLastRequest'
+      responses:
+        '200':
+          description: Successful response
+  /request/{request_id}/remove_software/{software_id}:
+    delete:
+      tags:
+        - requests
+        - softwares
+      summary: Remove software from request
+      operationId: removeSoftwareFromRequest
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          description: Request ID
+          schema:
+            type: integer
+        - name: software_id
+          in: path
+          required: true
+          description: Software ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+  /request/{request_id}/apply_mod:
+    patch:
+      tags:
+        - requests
+      summary: Apply moderator
+      operationId: applyModerator
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          description: Request ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+  /tags/{input}:
+    get:
+      tags:
+        - tags
+      summary: Get tags by input
+      operationId: getTagsByInput
+      parameters:
+        - name: input
+          in: path
+          required: true
+          description: Input for tags
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+  /tag:
+    post:
+      tags:
+        - tags
+      summary: Create a new tag
+      operationId: createNewTag
+      responses:
+        '200':
+          description: Successful response
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Tag'
+  /tag/{id}:
+    get:
+      tags:
+        - tags
+      summary: Get a tag by ID
+      operationId: getTagById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Tag ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+    put:
+      tags:
+        - tags
+      summary: Update a tag by ID
+      operationId: updateTagById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Tag ID
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Tag'
+      responses:
+        '200':
+          description: Successful response
+  /auth/login:
+    post:
+      tags:
+        - auth
+      summary: Login
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRegister'
+      responses:
+        '200':
+          description: Successful response
+  /auth/register:
+    post:
+      tags:
+        - auth
+      summary: Register
+      operationId: register
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRegister'
+      responses:
+        '200':
+          description: Successful response
+  /auth/logout:
+    post:
+      tags:
+        - auth
+      summary: Logout
+      operationId: logout
+      responses:
+        '200':
+          description: Successful response
+components:
+  securitySchemes:
+    bearerAuth:            # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Software:
+      type: object
+      properties:
+        description:
+          type: string
+          nullable: true
+        version:
+          type: string
+          nullable: true
+        active:
+          type: boolean
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        source:
+          type: string
+          nullable: true
+    Tag:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: false
+    NewRequest:
+      type: object
+      properties:
+        ssh_address:
+          type: string
+          nullable: true
+        ssh_password:
+          type: string
+          nullable: true
+    AddSoftwareToLastRequest:
+      type: object
+      properties:
+        software_id:
+          type: integer
+    UpdateRequest:
+      type: object
+      properties:
+        ssh_address:
+          type: string
+          nullable: true
+        ssh_password:
+          type: string
+          nullable: true
+        moderator_id:
+          type: integer
+          nullable: true
+        status:
+          type: string
+          nullable: true
+    UpdateRequestStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          nullable: false
+    LoginRegister:
+      type: object
+      properties:
+        username:
+          type: string
+          nullable: false
+        password:
+          type: string
+          nullable: false
+security:
+  - bearerAuth: []

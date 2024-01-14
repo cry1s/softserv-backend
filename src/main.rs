@@ -1,20 +1,29 @@
-use std::sync::Mutex;
+use std::env;
+use std::sync::{Mutex, Arc};
 
 use crate::models::Software;
+use actix_files::Files;
 use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer};
 use controller::Database;
+use dotenvy::dotenv;
+use redis::ConnectionInfo;
 use s3::creds::Credentials;
 use s3::{Bucket, Region};
 
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> Result<(), std::io::Error> {
+    dotenv().ok();
+
+    let redis_connection = connect_to_redis().await;
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
             .app_data(web::Data::new(Mutex::new(Database::new())))
             .app_data(web::Data::new(connect_to_bucket()))
+            .app_data(web::Data::new(redis_connection.clone()))
             .default_service(web::route().to(HttpResponse::NotFound))
+            .service(Files::new("/swagger-ui", "./swagger-ui").index_file("index.html"))
             .route(
                 "/softwares",
                 web::get().to(methods::softwares::all_softwares),
@@ -76,6 +85,9 @@ async fn main() -> std::io::Result<()> {
                     .route(web::get().to(methods::tags::get_tag))
                     .route(web::put().to(methods::tags::update_tag)),
             )
+            .route("/auth/register", web::post().to(methods::auth::register))
+            .route("/auth/login", web::post().to(methods::auth::login))
+            .route("/auth/logout", web::post().to(methods::auth::logout))
     })
     .bind(("0.0.0.0", 8080))?
     .run()
@@ -95,8 +107,8 @@ fn connect_to_bucket() -> Bucket {
             endpoint: "http://localhost:9000".to_owned(),
         },
         Credentials {
-            access_key: Some("sglwG7iKSo4jJv9aedym".to_string()),
-            secret_key: Some("L7IL1UjCaSUaiZCZjlN27vdgEOfSLp7nSCgZqdj9".to_string()),
+            access_key: env::var("MINIO_ROOT_USER").ok(),
+            secret_key: env::var("MINIO_ROOT_PASSWORD").ok(),
             security_token: None,
             session_token: None,
             expiration: None,
@@ -104,4 +116,16 @@ fn connect_to_bucket() -> Bucket {
     )
     .unwrap()
     .with_path_style()
+}
+
+async fn connect_to_redis() -> Arc<Mutex<redis::aio::Connection>> {
+    let redis_host = format!(
+        "redis://:{}@{}:{}",
+        env::var("REDIS_PASSWORD").unwrap(),
+        env::var("REDIS_HOST").unwrap(),
+        env::var("REDIS_PORT").unwrap()
+    );
+    println!("Connecting to redis at {}", redis_host);
+    let redis_connection = redis::Client::open(redis_host).unwrap().get_tokio_connection().await.unwrap();
+    Arc::new(Mutex::new(redis_connection))
 }

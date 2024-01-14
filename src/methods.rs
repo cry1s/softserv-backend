@@ -5,6 +5,7 @@ use serde_json::json;
 pub mod requests;
 pub mod softwares;
 pub mod tags;
+pub mod auth;
 
 trait Response {
     fn response(&self, ok: impl Serialize) -> HttpResponse;

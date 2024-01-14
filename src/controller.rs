@@ -1,13 +1,17 @@
+use crate::methods::auth::LoginRegister;
 use crate::methods::requests::RequestFilter;
 use crate::methods::requests::RequestWithSoftwares;
 use crate::methods::softwares::SoftwareFilter;
+use crate::models::InsertUser;
+use crate::models::TokenClaims;
 use crate::models::{AddImageSoftware, RequestStatus};
 use crate::models::{InsertRequest, OptionInsertRequest, OptionInsertSoftware, Tag};
 use crate::models::{InsertSoftware, Request};
 use crate::Software;
 use diesel::{prelude::*, sql_query, PgConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use dotenvy::dotenv;
+use jsonwebtoken::{Header, EncodingKey};
+use pwhash::bcrypt;
 use serde::Serialize;
 use serde_json::json;
 use serde_json::Value;
@@ -403,6 +407,55 @@ impl Database {
             .set(moderator_id.eq(mod_id))
             .execute(&mut self.connection)
     }
+
+    pub(crate) fn register(&mut self, credentials: LoginRegister) -> QueryResult<usize> {
+        use crate::schema::users::dsl::*;
+
+        let hashed_password = bcrypt::hash(credentials.password).unwrap();
+
+        let user = users
+            .filter(username.eq(&credentials.username))
+            .first::<crate::models::User>(&mut self.connection)
+            .ok();
+        if user.is_none() {
+            InsertUser {
+                username: credentials.username,
+                password: hashed_password,
+            }
+            .insert_into(users)
+            .execute(&mut self.connection)
+        } else {
+            Err(diesel::result::Error::RollbackTransaction)
+        }
+    }
+
+    pub(crate) fn login(&mut self, credentials: LoginRegister) -> Result<String, String> {
+        use crate::schema::users::dsl::*;
+
+        let user = users
+            .filter(username.eq(&credentials.username))
+            .first::<crate::models::User>(&mut self.connection)
+            .ok();
+        if user.is_none() {
+            return Err("Wrong user or password".to_string());
+        };
+        let user = user.unwrap();
+        if bcrypt::verify(credentials.password, &user.password) {
+            let claims = TokenClaims {
+                sub: user.id.to_string(),
+                exp: (chrono::offset::Utc::now().timestamp() + 86400) as usize,
+                tkid: uuid::Uuid::new_v4().to_string(),
+            };
+            jsonwebtoken::encode(
+                &Header::default(),
+                &claims,
+                &EncodingKey::from_secret(env::var("JWT_SECRET").unwrap().as_bytes()),
+            ).map_err(|e| e.to_string())
+        } else {
+            Err("Wrong user or password".to_string())
+        }
+    }
+
 }
 
 fn get_user_id() -> i32 {
@@ -410,8 +463,6 @@ fn get_user_id() -> i32 {
 }
 
 fn establish_connection() -> PgConnection {
-    dotenv().ok();
-
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     match PgConnection::establish(&database_url) {
         Ok(conn) => conn,

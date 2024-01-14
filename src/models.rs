@@ -157,3 +157,18 @@ pub(crate) struct User {
     created_at: SystemTime,
     updated_at: SystemTime,
 }
+
+#[derive(Insertable, Debug, Selectable, Queryable, Serialize)]
+#[diesel(table_name = crate::schema::users)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub(crate) struct InsertUser {
+    pub(crate) username: String,
+    pub(crate) password: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub(crate) struct TokenClaims {
+    pub(crate) sub: String,
+    pub(crate) exp: usize,
+    pub(crate) tkid: String,
+}
