@@ -445,6 +445,8 @@ impl Database {
                 sub: user.id.to_string(),
                 exp: (chrono::offset::Utc::now().timestamp() + 86400) as usize,
                 tkid: uuid::Uuid::new_v4().to_string(),
+                uid: user.id,
+                moderator: user.moderator,
             };
             jsonwebtoken::encode(
                 &Header::default(),
@@ -454,6 +456,11 @@ impl Database {
         } else {
             Err("Wrong user or password".to_string())
         }
+    }
+
+    pub(crate) fn get_user_by_id(&mut self, user_id: i32) -> QueryResult<crate::models::User> {
+        use crate::schema::users::dsl::*;
+        users.find(user_id).first::<crate::models::User>(&mut self.connection)
     }
 
 }

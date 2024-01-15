@@ -26,7 +26,7 @@ async fn main() -> Result<(), std::io::Error> {
             .service(Files::new("/swagger-ui", "./swagger-ui").index_file("index.html"))
             .route(
                 "/softwares",
-                web::get().to(methods::softwares::all_softwares),
+                web::get().to(methods::softwares::all_softwares).wrap(VerifyAuth::optional()),
             )
             .route(
                 "/software",
@@ -89,6 +89,7 @@ async fn main() -> Result<(), std::io::Error> {
             .route("/auth/register", web::post().to(methods::auth::register).wrap(VerifyAuth::optional()))
             .route("/auth/login", web::post().to(methods::auth::login).wrap(VerifyAuth::optional()))
             .route("/auth/logout", web::post().to(methods::auth::logout).wrap(VerifyAuth::required()))
+            .route("/auth/me", web::get().to(methods::auth::get_current_user).wrap(VerifyAuth::required()))
     })
     .bind(("0.0.0.0", 8080))?
     .run()

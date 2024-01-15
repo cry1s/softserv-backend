@@ -171,4 +171,6 @@ pub(crate) struct TokenClaims {
     pub(crate) sub: String,
     pub(crate) exp: usize,
     pub(crate) tkid: String,
+    pub(crate) moderator: bool,
+    pub(crate) uid: i32,
 }
