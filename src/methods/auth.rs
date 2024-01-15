@@ -1,7 +1,6 @@
-use std::{sync::{Mutex, Arc}, env};
+use std::sync::{Mutex, Arc};
 
-use actix_web::{web, HttpResponse, HttpRequest};
-use jsonwebtoken::{DecodingKey, Validation};
+use actix_web::{web::{self, ReqData}, HttpResponse};
 use redis::{aio::Connection, AsyncCommands};
 use serde::{Serialize, Deserialize};
 use serde_json::json;
@@ -56,18 +55,10 @@ pub(crate) async fn login(
 
 pub(crate) async fn logout(
     redis_connection: web::Data<Arc<Mutex<Connection>>>,
-    req: HttpRequest,
+    claims: Option<ReqData<TokenClaims>>
 ) -> HttpResponse {
-    let token = req.headers().get("Authorization").unwrap().to_str().unwrap().trim_start_matches(BEARER);
-
-    let payload = jsonwebtoken::decode::<TokenClaims>(
-        token,
-        &DecodingKey::from_secret(env::var("JWT_SECRET").unwrap().as_bytes()),
-        &Validation::default(),
-    );
-
-    if let Ok(data) = payload {
-        let tkid = data.claims.tkid;
+    if let Some(data) = claims {
+        let tkid = data.into_inner().tkid;
         let mut redis_connection = redis_connection.lock().unwrap();
         let _ : () = redis_connection.set(&tkid, "blocked").await.unwrap();
         return HttpResponse::Ok().json(json!({

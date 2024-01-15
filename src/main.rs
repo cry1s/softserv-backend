@@ -6,7 +6,7 @@ use actix_files::Files;
 use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer};
 use controller::Database;
 use dotenvy::dotenv;
-use redis::ConnectionInfo;
+use methods::auth::middleware::VerifyAuth;
 use s3::creds::Credentials;
 use s3::{Bucket, Region};
 
@@ -30,64 +30,65 @@ async fn main() -> Result<(), std::io::Error> {
             )
             .route(
                 "/software",
-                web::post().to(methods::softwares::new_software),
+                web::post().to(methods::softwares::new_software).wrap(VerifyAuth::required()),
             )
             .service(
                 web::resource("/software/{id}")
-                    .route(web::get().to(methods::softwares::get_software))
-                    .route(web::put().to(methods::softwares::update_software))
-                    .route(web::delete().to(methods::softwares::delete_software)),
+                    .route(web::get().to(methods::softwares::get_software).wrap(VerifyAuth::optional()))
+                    .route(web::put().to(methods::softwares::update_software).wrap(VerifyAuth::required()))
+                    .route(web::delete().to(methods::softwares::delete_software).wrap(VerifyAuth::required())),
             )
             .route(
                 "/software/{soft_id}/add_tag/{tag_id}",
-                web::post().to(methods::softwares::add_tag_to_software),
+                web::post().to(methods::softwares::add_tag_to_software).wrap(VerifyAuth::required()),
             )
             .route(
                 "/software/{soft_id}/remove_tag/{tag_id}",
-                web::delete().to(methods::softwares::delete_tag),
+                web::delete().to(methods::softwares::delete_tag).wrap(VerifyAuth::required()),
             )
             .route(
                 "/software/{soft_id}/add_image",
-                web::put().to(methods::softwares::add_image),
+                web::put().to(methods::softwares::add_image).wrap(VerifyAuth::required()),
             )
             .route(
                 "/requests",
-                web::get().to(methods::requests::get_all_requests),
+                web::get().to(methods::requests::get_all_requests).wrap(VerifyAuth::required()),
             )
-            .route("/request", web::post().to(methods::requests::new_request))
+            .route("/request", web::post().to(methods::requests::new_request).wrap(VerifyAuth::required()))
             .route(
                 "/request/add",
-                web::post().to(methods::requests::add_software_to_last_request),
+                web::post().to(methods::requests::add_software_to_last_request).wrap(VerifyAuth::required()),
             )
             .service(
                 web::resource("/request/{id}")
                     .route(web::get().to(methods::requests::get_request))
                     .route(web::put().to(methods::requests::update_request))
                     .route(web::delete().to(methods::requests::delete_request))
-                    .route(web::patch().to(methods::requests::change_request_status)),
+                    .route(web::patch().to(methods::requests::change_request_status))
+                    .wrap(VerifyAuth::required()),
             )
             .route(
                 "/request/{request_id}/add_software/",
-                web::post().to(methods::requests::add_software_to_request),
+                web::post().to(methods::requests::add_software_to_request).wrap(VerifyAuth::required()),
             )
             .route(
                 "/request/{request_id}/remove_software/{software_id}",
-                web::delete().to(methods::requests::delete_software_from_request),
+                web::delete().to(methods::requests::delete_software_from_request).wrap(VerifyAuth::required()),
             )
             .route(
                 "/request/{request_id}/apply_mod",
-                web::patch().to(methods::requests::apply_mod),
+                web::patch().to(methods::requests::apply_mod).wrap(VerifyAuth::required()),
             )
             .route("/tags/{input}", web::get().to(methods::tags::tags_by_input))
-            .route("/tag", web::post().to(methods::tags::new_tag))
+            .route("/tag", web::post().to(methods::tags::new_tag).wrap(VerifyAuth::required()))
             .service(
                 web::resource("/tag/{id}")
-                    .route(web::get().to(methods::tags::get_tag))
-                    .route(web::put().to(methods::tags::update_tag)),
+                    .route(web::get().to(methods::tags::get_tag).wrap(VerifyAuth::optional()))
+                    .route(web::put().to(methods::tags::update_tag).wrap(VerifyAuth::required())),
             )
-            .route("/auth/register", web::post().to(methods::auth::register))
-            .route("/auth/login", web::post().to(methods::auth::login))
-            .route("/auth/logout", web::post().to(methods::auth::logout))
+            .route("/auth/register", web::post().to(methods::auth::register).wrap(VerifyAuth::optional()))
+            .route("/auth/login", web::post().to(methods::auth::login).wrap(VerifyAuth::optional()))
+            .route("/auth/logout", web::post().to(methods::auth::logout).wrap(VerifyAuth::required()))
     })
     .bind(("0.0.0.0", 8080))?
     .run()

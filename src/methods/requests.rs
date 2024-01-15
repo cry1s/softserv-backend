@@ -1,6 +1,7 @@
 use super::Response;
 use crate::controller::Database;
-use crate::models::{InsertRequest, OptionInsertRequest, Request, RequestStatus, Software};
+use crate::models::{InsertRequest, OptionInsertRequest, Request, RequestStatus, Software, TokenClaims};
+use actix_web::web::ReqData;
 use actix_web::{web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -134,7 +135,9 @@ pub(crate) struct AddSoftwareToLastRequestPayload {
 pub(crate) async fn add_software_to_last_request(
     pool: web::Data<Mutex<Database>>,
     payload: web::Json<AddSoftwareToLastRequestPayload>,
+    claims: Option<ReqData<TokenClaims>>
 ) -> HttpResponse {
+    println!("{:?}", claims);
     let user_id = get_user_id_mock();
     let mut db = pool.lock().unwrap();
     let response = db.add_software_to_last_request(payload.software_id, user_id);

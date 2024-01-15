@@ -166,7 +166,7 @@ pub(crate) struct InsertUser {
     pub(crate) password: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub(crate) struct TokenClaims {
     pub(crate) sub: String,
     pub(crate) exp: usize,
