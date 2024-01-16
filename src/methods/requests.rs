@@ -74,8 +74,9 @@ pub(crate) struct NewRequest {
 pub(crate) async fn new_request(
     pool: web::Data<Mutex<Database>>,
     body: web::Json<NewRequest>,
+    claims: Option<ReqData<TokenClaims>>
 ) -> HttpResponse {
-    let user_id = get_user_id_mock();
+    let user_id = claims.unwrap().uid;
     let mut db = pool.lock().unwrap();
     let request = InsertRequest {
         user_id,
@@ -86,10 +87,6 @@ pub(crate) async fn new_request(
     response.response(json!({
         "status": "ok"
     }))
-}
-
-fn get_user_id_mock() -> i32 {
-    1
 }
 
 pub(crate) async fn update_request(
@@ -138,7 +135,7 @@ pub(crate) async fn add_software_to_last_request(
     claims: Option<ReqData<TokenClaims>>
 ) -> HttpResponse {
     println!("{:?}", claims);
-    let user_id = get_user_id_mock();
+    let user_id = claims.unwrap().uid;
     let mut db = pool.lock().unwrap();
     let response = db.add_software_to_last_request(payload.software_id, user_id);
     response.response(json!({
@@ -155,6 +152,7 @@ pub(crate) async fn change_request_status(
     pool: web::Data<Mutex<Database>>,
     mut path: web::Path<RequestById>,
     body: web::Json<ChangeRequestStatusPayload>,
+    claims: Option<ReqData<TokenClaims>>
 ) -> HttpResponse {
     if path.id.is_none() {
         return HttpResponse::BadRequest().json(json!({
@@ -172,10 +170,10 @@ pub(crate) async fn change_request_status(
             "error": "Не представлен status"
         }));
     }
-    let _user_id = get_user_id_mock();
+    let user_id = claims.unwrap().uid;
 
     let mut db = pool.lock().unwrap();
-    let is_moderator = db.is_moderator(_user_id);
+    let is_moderator = db.is_moderator(user_id);
 
     if !is_moderator
         && (body.status.unwrap() != RequestStatus::Processed
@@ -272,7 +270,13 @@ pub(crate) async fn add_software_to_request(
 pub(crate) async fn delete_software_from_request(
     pool: web::Data<Mutex<Database>>,
     mut path: web::Path<(Option<i32>, Option<i32>)>,
+    claims: Option<ReqData<TokenClaims>>
 ) -> HttpResponse {
+    if claims.unwrap().moderator {
+        return HttpResponse::BadRequest().json(json!({
+            "error:": "Недостаточно прав"
+        }));
+    }
     if path.0.is_none() {
         return HttpResponse::BadRequest().json(json!({
             "error:": "Не представлен request_id"
@@ -287,9 +291,6 @@ pub(crate) async fn delete_software_from_request(
     let software_id = path.1.take().unwrap();
     let mut db = pool.lock().unwrap();
 
-    let _user_id = get_user_id_mock();
-    // TODO check if user is moderator and owner of request
-
     let response = db.delete_software_from_request(request_id, software_id);
     response.response(json!({
         "status": "ok"
@@ -299,7 +300,14 @@ pub(crate) async fn delete_software_from_request(
 pub(crate) async fn apply_mod(
     pool: web::Data<Mutex<Database>>,
     mut path: web::Path<(Option<i32>,)>,
+    claims: Option<ReqData<TokenClaims>>
 ) -> HttpResponse {
+    let claims = claims.unwrap();
+    if claims.moderator {
+        return HttpResponse::BadRequest().json(json!({
+            "error:": "Недостаточно прав"
+        }));
+    }
     if path.0.is_none() {
         return HttpResponse::BadRequest().json(json!({
             "error:": "Не представлен request_id"
@@ -307,8 +315,7 @@ pub(crate) async fn apply_mod(
     }
     let request_id = path.0.take().unwrap();
     let mut db = pool.lock().unwrap();
-    let user_id = get_user_id_mock();
-    // TODO check if user is moderator
+    let user_id = claims.uid;
 
     let response = db.apply_mod(request_id, user_id);
     response.response(json!({

@@ -302,7 +302,7 @@ impl Database {
         &mut self,
         soft_id: i32,
         user_id: i32,
-    ) -> QueryResult<usize> {
+    ) -> QueryResult<i32> {
         #[derive(Insertable)]
         #[diesel(table_name = requests_softwares)]
         #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -343,6 +343,7 @@ impl Database {
         }
         .insert_into(requests_softwares::table)
         .execute(&mut self.connection)
+        .map(|_| request_id)
     }
 
     pub(crate) fn delete_request(&mut self, request_id: i32) -> QueryResult<usize> {
