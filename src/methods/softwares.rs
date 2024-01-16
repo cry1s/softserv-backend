@@ -21,6 +21,7 @@ pub(crate) async fn all_softwares(
     query: web::Query<SoftwareFilter>,
     claims: Option<ReqData<TokenClaims>>,
 ) -> HttpResponse {
+    println!("{:?}", &claims);
     let mut db = pool.lock().unwrap();
     let filter = query.into_inner();
     let response = db.get_all_active_softwares(filter, claims.map(|c| c.uid));
