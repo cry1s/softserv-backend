@@ -10,7 +10,7 @@ use crate::models::{InsertSoftware, Request};
 use crate::Software;
 use diesel::{prelude::*, sql_query, PgConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use jsonwebtoken::{Header, EncodingKey};
+use jsonwebtoken::{EncodingKey, Header};
 use pwhash::bcrypt;
 use serde::Serialize;
 use serde_json::json;
@@ -39,7 +39,11 @@ impl Database {
         Database::default()
     }
 
-    pub(crate) fn get_all_active_softwares(&mut self, filter: SoftwareFilter) -> Value {
+    pub(crate) fn get_all_active_softwares(
+        &mut self,
+        filter: SoftwareFilter,
+        uid: Option<i32>,
+    ) -> Value {
         use crate::schema::{softwares, softwares_tags, tags};
         let mut query = softwares::dsl::softwares.into_boxed();
 
@@ -64,11 +68,15 @@ impl Database {
             let tags = self.get_tags_by_software(software.id);
             softwares_with_tags.push(SoftwareWithTags { software, tags })
         }
-        let user_id = get_user_id();
-        let request_id = select_draft_request!(user_id)
-            .select(crate::schema::requests::dsl::id)
-            .first::<i32>(&mut self.connection)
-            .ok();
+        let request_id;
+        if uid.is_some() {
+            request_id = select_draft_request!(uid.unwrap())
+                .select(crate::schema::requests::dsl::id)
+                .first::<i32>(&mut self.connection)
+                .ok();
+        } else {
+            request_id = None;
+        }
         json!({
             "softwares": softwares_with_tags,
             "request_id": request_id
@@ -440,7 +448,8 @@ impl Database {
                 &Header::default(),
                 &claims,
                 &EncodingKey::from_secret(env::var("JWT_SECRET").unwrap().as_bytes()),
-            ).map_err(|e| e.to_string())
+            )
+            .map_err(|e| e.to_string())
         } else {
             Err("Wrong user or password".to_string())
         }
@@ -448,13 +457,10 @@ impl Database {
 
     pub(crate) fn get_user_by_id(&mut self, user_id: i32) -> QueryResult<crate::models::User> {
         use crate::schema::users::dsl::*;
-        users.find(user_id).first::<crate::models::User>(&mut self.connection)
+        users
+            .find(user_id)
+            .first::<crate::models::User>(&mut self.connection)
     }
-
-}
-
-fn get_user_id() -> i32 {
-    1 // mock
 }
 
 fn establish_connection() -> PgConnection {
