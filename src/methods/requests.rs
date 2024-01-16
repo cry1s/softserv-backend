@@ -175,14 +175,13 @@ pub(crate) async fn change_request_status(
             "error": "Не представлен status"
         }));
     }
-    let user_id = claims.unwrap().uid;
 
     let mut db = pool.lock().unwrap();
-    let is_moderator = db.is_moderator(user_id);
+    let is_moderator = claims.unwrap().moderator;
 
     if !is_moderator
-        && (body.status.unwrap() != RequestStatus::Processed
-            || body.status.unwrap() != RequestStatus::Canceled)
+        && body.status.unwrap() != RequestStatus::Processed
+            && body.status.unwrap() != RequestStatus::Canceled
     {
         return HttpResponse::BadRequest().json(json!({
             "error": "Недостаточно прав"
