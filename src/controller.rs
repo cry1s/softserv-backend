@@ -24,16 +24,6 @@ pub(crate) struct Database {
     connection: PgConnection,
 }
 
-macro_rules! select_draft_request {
-    ($user_id:expr) => {
-        crate::schema::requests::dsl::requests.filter(
-            crate::schema::requests::dsl::user_id
-                .eq($user_id)
-                .and(crate::schema::requests::dsl::status.eq(RequestStatus::Created)),
-        )
-    };
-}
-
 impl Database {
     pub(crate) fn new() -> Self {
         Database::default()
@@ -70,10 +60,16 @@ impl Database {
         }
         let request_id;
         if uid.is_some() {
-            request_id = select_draft_request!(uid.unwrap())
-                .select(crate::schema::requests::dsl::id)
-                .first::<i32>(&mut self.connection)
-                .ok();
+            request_id = crate::schema::requests::dsl::requests
+                .filter(
+                    crate::schema::requests::dsl::user_id
+                        .eq(uid.unwrap())
+                        .and(crate::schema::requests::dsl::status.eq(RequestStatus::Created)),
+                )
+                .select(Request::as_select())
+                .first::<Request>(&mut self.connection)
+                .ok()
+                .map(|r| r.id)
         } else {
             request_id = None;
         }
