@@ -61,15 +61,15 @@ impl Database {
         let request_id;
         if uid.is_some() {
             request_id = crate::schema::requests::dsl::requests
-                .filter(
-                    crate::schema::requests::dsl::user_id
-                        .eq(uid.unwrap())
-                        .and(crate::schema::requests::dsl::status.eq(RequestStatus::Created)),
-                )
-                .select(Request::as_select())
-                .first::<Request>(&mut self.connection)
-                .ok()
-                .map(|r| r.id)
+            .filter(
+                crate::schema::requests::dsl::user_id
+                    .eq(uid.unwrap())
+                    .and(crate::schema::requests::dsl::status.eq(RequestStatus::Created)),
+            )
+            .order(crate::schema::requests::dsl::created_at.desc())
+            .select(crate::schema::requests::dsl::id)
+            .first::<i32>(&mut self.connection)
+            .ok();
         } else {
             request_id = None;
         }

@@ -1,8 +1,11 @@
-use crate::{controller::Database, models::TokenClaims};
 use crate::methods::Response;
 use crate::models::OptionInsertSoftware;
+use crate::{controller::Database, models::TokenClaims};
 use actix_multipart::Multipart;
-use actix_web::{web::{self, ReqData}, HttpResponse, Responder};
+use actix_web::{
+    web::{self, ReqData},
+    HttpResponse, Responder,
+};
 use futures::{StreamExt, TryStreamExt as _};
 use serde::Deserialize;
 use serde_json::json;
@@ -16,7 +19,7 @@ pub(crate) struct SoftwareFilter {
 pub(crate) async fn all_softwares(
     pool: web::Data<Mutex<Database>>,
     query: web::Query<SoftwareFilter>,
-    claims: Option<ReqData<TokenClaims>>
+    claims: Option<ReqData<TokenClaims>>,
 ) -> HttpResponse {
     let mut db = pool.lock().unwrap();
     let filter = query.into_inner();
