@@ -138,9 +138,14 @@ pub(crate) async fn add_software_to_last_request(
     let user_id = claims.unwrap().uid;
     let mut db = pool.lock().unwrap();
     let response = db.add_software_to_last_request(payload.software_id, user_id);
-    response.response(json!({
-        "status": "ok"
-    }))
+    match response {
+        Ok(s) => HttpResponse::Ok().json(json!({
+            "request_id": s
+        })),
+        Err(e) => HttpResponse::InternalServerError().json(json!({
+            "error": e.to_string()
+        })),
+    }
 }
 
 #[derive(Deserialize)]
