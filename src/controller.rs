@@ -109,9 +109,12 @@ impl Database {
         .execute(&mut self.connection)
     }
 
-    pub(crate) fn get_all_requests(&mut self, filter: RequestFilter) -> Vec<RequestWithSoftwares> {
+    pub(crate) fn get_all_requests(&mut self, filter: RequestFilter, uid: Option<i32>) -> Vec<RequestWithSoftwares> {
         use crate::schema::requests::dsl;
         let mut query = dsl::requests.into_boxed();
+        if let Some(userid) = uid {
+            query = query.filter(dsl::user_id.eq(userid))
+        }
         if let Some(filter_status) = filter.status {
             query = query.filter(dsl::status.eq(filter_status))
         } else {

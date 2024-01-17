@@ -63,7 +63,13 @@ pub(crate) async fn update_software(
     pool: web::Data<Mutex<Database>>,
     mut path: web::Path<SoftwareById>,
     body: web::Json<OptionInsertSoftware>,
+    claims: Option<ReqData<TokenClaims>>
 ) -> HttpResponse {
+    if !claims.unwrap().moderator {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Недостаточно прав"
+        }));
+    }
     if path.id.is_none() {
         return HttpResponse::BadRequest().json(json!({
             "error:": "Не представлен ID"
@@ -111,7 +117,13 @@ pub(crate) async fn update_software(
 pub(crate) async fn new_software(
     pool: web::Data<Mutex<Database>>,
     body: web::Json<OptionInsertSoftware>,
+    claims: Option<ReqData<TokenClaims>>,
 ) -> HttpResponse {
+    if !claims.unwrap().moderator {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Недостаточно прав"
+        }));
+    }
     if body.any_none() {
         return HttpResponse::BadRequest().json(json!({
             "error": "Недостаточно полей"
@@ -140,7 +152,13 @@ pub(crate) struct AddTagPayload {
 pub(crate) async fn add_tag_to_software(
     pool: web::Data<Mutex<Database>>,
     path: web::Path<AddTagPayload>,
+    claims: Option<ReqData<TokenClaims>>
 ) -> HttpResponse {
+    if !claims.unwrap().moderator {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Недостаточно прав"
+        }));
+    }
     let mut db = pool.lock().unwrap();
     let response = db.add_tag_to_software(path.soft_id, path.tag_id);
     response.response(json!({
@@ -151,7 +169,13 @@ pub(crate) async fn add_tag_to_software(
 pub(crate) async fn delete_tag(
     pool: web::Data<Mutex<Database>>,
     path: web::Path<AddTagPayload>,
+    claims: Option<ReqData<TokenClaims>>
 ) -> HttpResponse {
+    if !claims.unwrap().moderator {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Недостаточно прав"
+        }));
+    }
     let mut db = pool.lock().unwrap();
     let response = db.delete_tag_from_software(path.soft_id, path.tag_id);
     response.response(json!({
@@ -162,7 +186,13 @@ pub(crate) async fn delete_tag(
 pub(crate) async fn delete_software(
     pool: web::Data<Mutex<Database>>,
     path: web::Path<(i32,)>,
+    claims: Option<ReqData<TokenClaims>>
 ) -> impl Responder {
+    if !claims.unwrap().moderator {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Недостаточно прав"
+        }));
+    }
     let response = pool.lock().unwrap().delete_software(path.0);
     response.response(json!({
         "status": "ok"
@@ -174,7 +204,13 @@ pub(crate) async fn add_image(
     pool: web::Data<Mutex<Database>>,
     mut path: web::Path<(Option<String>,)>,
     mut body: Multipart,
+    claims: Option<ReqData<TokenClaims>>
 ) -> HttpResponse {
+    if !claims.unwrap().moderator {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Недостаточно прав"
+        }));
+    }
     if path.0.is_none() {
         return HttpResponse::BadRequest().json(json!({
             "error:": "Не представлен ID"

@@ -53,6 +53,15 @@ pub(crate) struct OptionInsertRequest {
     pub(crate) completed_at: Option<SystemTime>,
 }
 
+impl OptionInsertRequest {
+    pub fn mod_rights_needed(&self) -> bool {
+        self.moderator_id.is_some() ||
+        self.status.is_some() ||
+        self.processed_at.is_some() ||
+        self.completed_at.is_some()
+    }
+}
+
 #[derive(Identifiable, Debug, Selectable, Queryable, Associations)]
 #[diesel(primary_key(software_id, request_id))]
 #[diesel(belongs_to(Software))]

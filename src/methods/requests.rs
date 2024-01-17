@@ -20,14 +20,11 @@ pub(crate) async fn get_all_requests(
     query: web::Query<RequestFilter>,
     claims: Option<ReqData<TokenClaims>>
 ) -> HttpResponse {
-    if !claims.unwrap().moderator {
-        return HttpResponse::BadRequest().json(json!({
-            "error": "Недостаточно прав"
-        }));
-    }
+    let claims = claims.unwrap();
     let mut db = pool.lock().unwrap();
     let filter = query.into_inner();
-    let response = db.get_all_requests(filter);
+    let uid = if claims.moderator { None } else { Some(claims.uid) };
+    let response = db.get_all_requests(filter, uid);
     HttpResponse::Ok().json(response)
 }
 
@@ -46,6 +43,7 @@ pub(crate) struct RequestWithSoftwares {
 pub(crate) async fn get_request(
     pool: web::Data<Mutex<Database>>,
     mut path: web::Path<RequestById>,
+    claims: Option<ReqData<TokenClaims>>
 ) -> HttpResponse {
     if path.id.is_none() {
         return HttpResponse::BadRequest().json(json!({
@@ -66,8 +64,15 @@ pub(crate) async fn get_request(
             "error": "ID не существует"
         }));
     }
+    let request = request.unwrap();
+    let claims = claims.unwrap();
+    if request.request.user_id != claims.uid && !claims.moderator {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Недостаточно прав"
+        }));
+    }
     HttpResponse::Ok().json(json!({
-        "request": request.unwrap()
+        "request": request
     }))
 }
 
@@ -99,7 +104,13 @@ pub(crate) async fn update_request(
     pool: web::Data<Mutex<Database>>,
     mut path: web::Path<RequestById>,
     mut body: web::Json<OptionInsertRequest>,
+    claims: Option<ReqData<TokenClaims>>
 ) -> HttpResponse {
+    if !claims.unwrap().moderator && body.mod_rights_needed() {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Недостаточно прав"
+        }));
+    }
     if path.id.is_none() {
         return HttpResponse::BadRequest().json(json!({
             "error:": "Не представлен ID"
