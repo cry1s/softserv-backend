@@ -13,6 +13,7 @@ pub(crate) struct RequestFilter {
     pub(crate) status: Option<RequestStatus>,
     pub(crate) create_date_start: Option<i32>,
     pub(crate) create_date_end: Option<i32>,
+    pub(crate) all: Option<bool>
 }
 
 pub(crate) async fn get_all_requests(
@@ -22,8 +23,9 @@ pub(crate) async fn get_all_requests(
 ) -> HttpResponse {
     let claims = claims.unwrap();
     let mut db = pool.lock().unwrap();
+    let all = query.all.is_some_and(|c| c);
     let filter = query.into_inner();
-    let uid = if claims.moderator { None } else { Some(claims.uid) };
+    let uid = if claims.moderator && all { None } else { Some(claims.uid) };
     let response = db.get_all_requests(filter, uid);
     HttpResponse::Ok().json(response)
 }
