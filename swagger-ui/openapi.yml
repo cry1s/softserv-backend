@@ -183,6 +183,10 @@ paths:
           in: query
           schema:
             type: number
+        - name: all
+          in: query
+          schema:
+            type: boolean
   /request:
     post:
       tags:
