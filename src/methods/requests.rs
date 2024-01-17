@@ -240,7 +240,13 @@ pub(crate) async fn change_request_status(
 pub(crate) async fn delete_request(
     pool: web::Data<Mutex<Database>>,
     mut path: web::Path<RequestById>,
+    claims: Option<ReqData<TokenClaims>>
 ) -> HttpResponse {
+    if !claims.unwrap().moderator {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Недостаточно прав"
+        }));
+    }
     if path.id.is_none() {
         return HttpResponse::BadRequest().json(json!({
             "error:": "Не представлен ID"
@@ -269,7 +275,13 @@ pub(crate) async fn add_software_to_request(
     pool: web::Data<Mutex<Database>>,
     mut path: web::Path<(Option<i32>,)>,
     payload: web::Json<AddSoftwareToRequestPayload>,
+    claims: Option<ReqData<TokenClaims>>
 ) -> HttpResponse {
+    if !claims.unwrap().moderator {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Недостаточно прав. Пожалуйста, используйте POST /request/add"
+        }));
+    }
     if path.0.is_none() {
         return HttpResponse::BadRequest().json(json!({
             "error:": "Не представлен request_id"

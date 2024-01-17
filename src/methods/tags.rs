@@ -1,11 +1,13 @@
 use std::sync::Mutex;
 
+use actix_web::web::ReqData;
 use actix_web::{web, HttpResponse};
 use serde::Deserialize;
 use serde_json::json;
 
 use crate::controller::Database;
 use crate::methods::Response;
+use crate::models::TokenClaims;
 
 pub(crate) async fn tags_by_input(
     pool: web::Data<Mutex<Database>>,
@@ -24,7 +26,13 @@ pub(crate) struct Tag {
 pub(crate) async fn new_tag(
     pool: web::Data<Mutex<Database>>,
     body: web::Json<Tag>,
+    claims: Option<ReqData<TokenClaims>>
 ) -> HttpResponse {
+    if !claims.unwrap().moderator {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Недостаточно прав"
+        }));
+    }
     let mut db = pool.lock().unwrap();
     let tag = db.create_tag(body.name.clone());
     tag.response(json!({
@@ -48,7 +56,13 @@ pub(crate) async fn update_tag(
     pool: web::Data<Mutex<Database>>,
     path: web::Path<i32>,
     tag: web::Json<Tag>,
+    claims: Option<ReqData<TokenClaims>>
 ) -> HttpResponse {
+    if !claims.unwrap().moderator {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Недостаточно прав"
+        }));
+    }
     let mut db = pool.lock().unwrap();
     let tag = db.update_tag_by_id(path.into_inner(), tag.name.clone());
     match tag {
