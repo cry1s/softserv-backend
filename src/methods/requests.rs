@@ -239,6 +239,15 @@ pub(crate) async fn change_request_status(
     }))
 }
 
+pub(crate) async fn change_request_status_admin(
+    pool: web::Data<Mutex<Database>>,
+    path: web::Path<RequestById>,
+    body: web::Json<ChangeRequestStatusPayload>,
+    claims: Option<ReqData<TokenClaims>>
+) -> HttpResponse {
+    change_request_status(pool, path, body, claims).await
+}
+
 pub(crate) async fn delete_request(
     pool: web::Data<Mutex<Database>>,
     mut path: web::Path<RequestById>,
