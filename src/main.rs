@@ -55,8 +55,9 @@ async fn main() -> std::io::Result<()> {
                     .route(web::get().to(methods::requests::get_request))
                     .route(web::put().to(methods::requests::update_request))
                     .route(web::delete().to(methods::requests::delete_request))
-                    .route(web::patch().to(methods::requests::change_request_status)),
             )
+            .route("/request/{id}/user", web::patch().to(methods::requests::change_request_status))
+            .route("/request/{id}/admin", web::patch().to(methods::requests::change_request_status_admin))
             .route(
                 "/request/{request_id}/add_software/",
                 web::post().to(methods::requests::add_software_to_request),

@@ -215,6 +215,73 @@ pub(crate) async fn change_request_status(
     }))
 }
 
+pub(crate) async fn change_request_status_admin(
+    pool: web::Data<Mutex<Database>>,
+    mut path: web::Path<RequestById>,
+    body: web::Json<ChangeRequestStatusPayload>,
+) -> HttpResponse {
+    if path.id.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error:": "Не представлен ID"
+        }));
+    }
+    let id = path.id.take().unwrap().parse::<i32>();
+    if id.is_err() {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Неправильный ID"
+        }));
+    }
+    if body.status.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Не представлен status"
+        }));
+    }
+    let _user_id = get_user_id_mock();
+
+    let mut db = pool.lock().unwrap();
+    let is_moderator = db.is_moderator(_user_id);
+
+    if !is_moderator
+        && (body.status.unwrap() != RequestStatus::Processed
+            || body.status.unwrap() != RequestStatus::Canceled)
+    {
+        return HttpResponse::BadRequest().json(json!({
+            "error": "Недостаточно прав"
+        }));
+    }
+    let id = id.unwrap();
+    let new_status = body.status.unwrap();
+    let current_status = db.get_request(id).unwrap().request.status;
+    let mut upd = OptionInsertRequest::default();
+
+    match (current_status, new_status) {
+        (RequestStatus::Created, RequestStatus::Processed) => {
+            upd.status = Some(RequestStatus::Processed);
+            upd.processed_at = Some(SystemTime::now());
+        }
+        (RequestStatus::Processed, RequestStatus::Completed) => {
+            upd.status = Some(RequestStatus::Completed);
+            upd.completed_at = Some(SystemTime::now());
+        }
+        (cur, RequestStatus::Canceled)
+            if cur != RequestStatus::Deleted || cur != RequestStatus::Created =>
+        {
+            upd.status = Some(RequestStatus::Canceled);
+        }
+        _ => {
+            return HttpResponse::BadRequest().json(json!({
+                "error": "Неправильный переход"
+            }));
+        }
+    }
+
+    upd.status = body.status;
+    let response = db.update_request_by_id(id, upd);
+    response.response(json!({
+        "status": "ok"
+    }))
+}
+
 pub(crate) async fn delete_request(
     pool: web::Data<Mutex<Database>>,
     mut path: web::Path<RequestById>,
