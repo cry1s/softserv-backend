@@ -94,7 +94,8 @@ async fn main() -> Result<(), std::io::Error> {
                 web::resource("/request/{id}")
                     .route(web::get().to(methods::requests::get_request))
                     .route(web::put().to(methods::requests::update_request))
-                    .route(web::delete().to(methods::requests::delete_request)),
+                    .route(web::delete().to(methods::requests::delete_request))
+                    .wrap(VerifyAuth::required()),
             )
             .route(
                 "/request/{id}/user",
