@@ -266,10 +266,32 @@ paths:
       responses:
         '200':
           description: Successful response
+  /request/{id}/user:
     patch:
       tags:
         - requests
-      summary: Change request status
+      summary: Change request status for user
+      operationId: changeRequestStatus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Request ID
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRequestStatus'
+      responses:
+        '200':
+          description: Successful response
+  /request/{id}/admin:
+    patch:
+      tags:
+        - requests
+      summary: Change request status for admin
       operationId: changeRequestStatus
       parameters:
         - name: id

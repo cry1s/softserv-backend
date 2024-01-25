@@ -164,12 +164,6 @@ async fn main() -> Result<(), std::io::Error> {
                     .to(methods::auth::logout)
                     .wrap(VerifyAuth::required()),
             )
-            .route(
-                "/auth/me",
-                web::get()
-                    .to(methods::auth::get_current_user)
-                    .wrap(VerifyAuth::required()),
-            )
     })
     .bind(("0.0.0.0", 8080))?
     .run()

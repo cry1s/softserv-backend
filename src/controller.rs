@@ -427,7 +427,7 @@ impl Database {
     pub(crate) fn login(&mut self, credentials: LoginRegister) -> Result<String, String> {
         use crate::schema::users::dsl::*;
 
-        let user = users
+        let user: Option<crate::models::User> = users
             .filter(username.eq(&credentials.username))
             .first::<crate::models::User>(&mut self.connection)
             .ok();
@@ -442,6 +442,7 @@ impl Database {
                 tkid: uuid::Uuid::new_v4().to_string(),
                 uid: user.id,
                 moderator: user.moderator,
+                uname: user.username,
             };
             jsonwebtoken::encode(
                 &Header::default(),
@@ -452,13 +453,6 @@ impl Database {
         } else {
             Err("Wrong user or password".to_string())
         }
-    }
-
-    pub(crate) fn get_user_by_id(&mut self, user_id: i32) -> QueryResult<crate::models::User> {
-        use crate::schema::users::dsl::*;
-        users
-            .find(user_id)
-            .first::<crate::models::User>(&mut self.connection)
     }
 }
 

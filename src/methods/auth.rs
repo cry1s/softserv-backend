@@ -70,20 +70,4 @@ pub(crate) async fn logout(
     }))
 }
 
-pub(crate) async fn get_current_user(
-    pool: web::Data<Mutex<Database>>,
-    claims: ReqData<TokenClaims>
-) -> HttpResponse {
-    let mut db = pool.lock().unwrap();
-    let claims = claims.into_inner();
-    let result = db.get_user_by_id(claims.uid);
-
-    match result {
-        Ok(user) => HttpResponse::Ok().json(user),
-        Err(e) => HttpResponse::InternalServerError().json(json!({
-            "error": e.to_string()
-        })),
-    }
-}
-
 pub(crate) mod middleware;

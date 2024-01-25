@@ -182,4 +182,5 @@ pub(crate) struct TokenClaims {
     pub(crate) tkid: String,
     pub(crate) moderator: bool,
     pub(crate) uid: i32,
+    pub(crate) uname: String,
 }
