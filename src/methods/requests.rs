@@ -195,7 +195,8 @@ pub(crate) async fn change_request_status(
     }
 
     let mut db = pool.lock().unwrap();
-    let is_moderator = claims.unwrap().moderator;
+    let claims = claims.unwrap();
+    let is_moderator = claims.moderator;
 
     if !is_moderator
         && body.status.unwrap() != RequestStatus::Processed
@@ -218,11 +219,13 @@ pub(crate) async fn change_request_status(
         (RequestStatus::Processed, RequestStatus::Completed) => {
             upd.status = Some(RequestStatus::Completed);
             upd.completed_at = Some(SystemTime::now());
+            upd.moderator_id = if is_moderator { Some(claims.uid) } else { None };
         }
         (cur, RequestStatus::Canceled)
             if cur != RequestStatus::Deleted || cur != RequestStatus::Created =>
         {
             upd.status = Some(RequestStatus::Canceled);
+            upd.moderator_id = if is_moderator { Some(claims.uid) } else { None };
         }
         _ => {
             return HttpResponse::BadRequest().json(json!({
