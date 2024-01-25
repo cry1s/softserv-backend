@@ -244,7 +244,7 @@ pub(crate) async fn add_image(
             }
         }
     }
-    let resp = s3.put_object(format!("{}.png", id), &file_data).await;
+    let resp = s3.put_object(format!("{}_{}.png", id, chrono::offset::Local::now()), &file_data).await;
     if resp.is_err() {
         return HttpResponse::BadRequest().json(json!({
             "error": resp.err().unwrap().to_string()
