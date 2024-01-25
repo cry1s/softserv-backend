@@ -141,6 +141,7 @@ impl Database {
             requests_with_softwares.push(RequestWithSoftwares {
                 username: self.get_nickname_by_request(&request),
                 softwares: self.get_softwares_by_request(&request),
+                modername: self.get_modername_by_request(&request),
                 request,
             })
         }
@@ -153,6 +154,14 @@ impl Database {
             .select(crate::schema::users::dsl::username)
             .first::<String>(&mut self.connection)
             .unwrap()
+    }
+
+    fn get_modername_by_request(&mut self, request: &Request) -> Option<String> {
+        crate::schema::users::dsl::users
+            .find(request.moderator_id?)
+            .select(crate::schema::users::dsl::username)
+            .first::<String>(&mut self.connection)
+            .ok()
     }
 
     pub(crate) fn get_softwares_by_request(&mut self, request: &Request) -> Vec<Software> {
@@ -173,6 +182,7 @@ impl Database {
             .get_result::<Request>(&mut self.connection)
             .ok()?;
         Some(RequestWithSoftwares {
+            modername: self.get_modername_by_request(&request),
             username: self.get_nickname_by_request(&request),
             softwares: self.get_softwares_by_request(&request),
             request,
