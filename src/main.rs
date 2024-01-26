@@ -169,7 +169,7 @@ async fn main() -> Result<(), std::io::Error> {
     .bind(("0.0.0.0", 8080))?
     .run()
     .await
-}
+}   
 
 pub(crate) mod controller;
 pub(crate) mod methods;

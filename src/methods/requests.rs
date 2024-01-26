@@ -200,7 +200,7 @@ pub(crate) async fn change_request_status(
 
     if !is_moderator
         && body.status.unwrap() != RequestStatus::Processed
-            && body.status.unwrap() != RequestStatus::Canceled
+            && body.status.unwrap() != RequestStatus::Deleted
     {
         return HttpResponse::BadRequest().json(json!({
             "error": "Недостаточно прав"
@@ -215,6 +215,9 @@ pub(crate) async fn change_request_status(
         (RequestStatus::Created, RequestStatus::Processed) => {
             upd.status = Some(RequestStatus::Processed);
             upd.processed_at = Some(SystemTime::now());
+        }
+        (RequestStatus::Created, RequestStatus::Deleted) => {
+            upd.status = Some(RequestStatus::Deleted);
         }
         (RequestStatus::Processed, RequestStatus::Completed) => {
             upd.status = Some(RequestStatus::Completed);
@@ -344,7 +347,7 @@ pub(crate) async fn delete_software_from_request(
     let request = request.unwrap();
     let claims = claims.unwrap();
 
-    if !claims.moderator || request.request.user_id != claims.uid {
+    if !claims.moderator && request.request.user_id != claims.uid {
         return HttpResponse::BadRequest().json(json!({
             "error:": "Недостаточно прав"
         }));
