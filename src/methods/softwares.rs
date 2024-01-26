@@ -244,13 +244,14 @@ pub(crate) async fn add_image(
             }
         }
     }
-    let resp = s3.put_object(format!("{}_{}.png", id, chrono::offset::Local::now()), &file_data).await;
+    let ts = chrono::offset::Local::now();
+    let resp = s3.put_object(format!("{}_{}.png", id, ts), &file_data).await;
     if resp.is_err() {
         return HttpResponse::BadRequest().json(json!({
             "error": resp.err().unwrap().to_string()
         }));
     }
-    let url = format!("http://localhost:9000/bucket/{}.png", id);
+    let url = format!("http://localhost:9000/bucket/{}_{}.png", id, ts);
     let mut db = pool.lock().unwrap();
     let response = db.add_logo_to_software(id, &url);
     response.response(json!({
