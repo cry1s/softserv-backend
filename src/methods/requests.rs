@@ -3,7 +3,6 @@ use crate::controller::Database;
 use crate::models::{InsertRequest, OptionInsertRequest, Request, RequestStatus, Software, TokenClaims};
 use actix_web::web::ReqData;
 use actix_web::{web, HttpResponse};
-use s3::request;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Mutex;
@@ -319,6 +318,17 @@ pub(crate) async fn delete_software_from_request(
     mut path: web::Path<(Option<i32>, Option<i32>)>,
     claims: Option<ReqData<TokenClaims>>
 ) -> HttpResponse {
+    if path.0.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error:": "Не представлен request_id"
+        }));
+    }
+    if path.1.is_none() {
+        return HttpResponse::BadRequest().json(json!({
+            "error:": "Не представлен software_id"
+        }));
+    }
+
     let request_id = path.0.take().unwrap();
     let software_id = path.1.take().unwrap();
 
@@ -333,23 +343,12 @@ pub(crate) async fn delete_software_from_request(
     }
     let request = request.unwrap();
     let claims = claims.unwrap();
-    
+
     if !claims.moderator || request.request.user_id != claims.uid {
         return HttpResponse::BadRequest().json(json!({
             "error:": "Недостаточно прав"
         }));
     }
-    if path.0.is_none() {
-        return HttpResponse::BadRequest().json(json!({
-            "error:": "Не представлен request_id"
-        }));
-    }
-    if path.1.is_none() {
-        return HttpResponse::BadRequest().json(json!({
-            "error:": "Не представлен software_id"
-        }));
-    }
-    
 
     let response = db.delete_software_from_request(request_id, software_id);
     response.response(json!({
