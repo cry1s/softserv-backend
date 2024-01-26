@@ -9,12 +9,11 @@ use crate::controller::Database;
 use crate::methods::Response;
 use crate::models::TokenClaims;
 
-pub(crate) async fn tags_by_input(
+pub(crate) async fn all_tags(
     pool: web::Data<Mutex<Database>>,
-    input: web::Path<String>,
 ) -> HttpResponse {
     let mut db = pool.lock().unwrap();
-    let tags = db.get_tags_by_input(input.into_inner());
+    let tags = db.get_all_tags();
     HttpResponse::Ok().json(tags)
 }
 

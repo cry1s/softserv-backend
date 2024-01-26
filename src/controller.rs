@@ -90,6 +90,14 @@ impl Database {
         Some(SoftwareWithTags { software, tags })
     }
 
+    pub(crate) fn get_software_by_name(&mut self, name: &str) -> QueryResult<Software> {
+        use crate::schema::softwares::dsl;
+        dsl::softwares
+            .filter(dsl::name.eq(name))
+            .select(Software::as_select())
+            .first(&mut self.connection)
+    }
+
     pub(crate) fn get_tags_by_software(&mut self, soft_id: i32) -> Vec<Tag> {
         use crate::schema::softwares_tags::dsl::*;
         use crate::schema::tags;
@@ -251,10 +259,9 @@ impl Database {
             .get_result::<Request>(&mut self.connection)
     }
 
-    pub(crate) fn get_tags_by_input(&mut self, input: String) -> Vec<Tag> {
+    pub(crate) fn get_all_tags(&mut self) -> Vec<Tag> {
         use crate::schema::tags::dsl::*;
-        tags.filter(name.like(format!("%{}%", input)))
-            .select(Tag::as_select())
+        tags.select(Tag::as_select())
             .load(&mut self.connection)
             .unwrap_or(vec![])
     }

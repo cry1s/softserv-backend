@@ -131,16 +131,26 @@ pub(crate) async fn new_software(
     }
 
     let mut db = pool.lock().unwrap();
+    let name = body.0.name.unwrap();
     let res = db.new_software(
-        body.0.name.unwrap(),
+        name.clone(),
         body.0.active.unwrap(),
         body.0.description.unwrap(),
         body.0.version.unwrap(),
         body.0.source.unwrap(),
     );
-    res.response(json!({
-        "status": "ok"
-    }))
+    if res.is_err() {
+        res.response("");
+    }
+    let soft = db.get_software_by_name(&name);
+    match soft {
+        Ok(soft) => HttpResponse::Ok().json(json!({
+            "soft": soft
+        })),
+        Err(e) => HttpResponse::BadRequest().json(json!({
+            "error": e.to_string()
+        })),
+    }
 }
 
 #[derive(Deserialize)]

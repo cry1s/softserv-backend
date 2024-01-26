@@ -127,7 +127,7 @@ async fn main() -> Result<(), std::io::Error> {
                     .to(methods::requests::apply_mod)
                     .wrap(VerifyAuth::required()),
             )
-            .route("/tags/{input}", web::get().to(methods::tags::tags_by_input))
+            .route("/tags", web::get().to(methods::tags::all_tags))
             .route(
                 "/tag",
                 web::post()
