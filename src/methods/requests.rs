@@ -229,6 +229,7 @@ pub(crate) async fn change_request_status(
         {
             upd.status = Some(RequestStatus::Canceled);
             upd.moderator_id = if is_moderator { Some(claims.uid) } else { None };
+            upd.completed_at = Some(SystemTime::now());
         }
         _ => {
             return HttpResponse::BadRequest().json(json!({
