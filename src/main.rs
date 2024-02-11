@@ -16,6 +16,7 @@ async fn main() -> std::io::Result<()> {
             )
             .service(softserv::index)
             .service(softserv::soft)
+            .service(softserv::cart)
     })
     .bind(("localhost", 8080))?
     .run()

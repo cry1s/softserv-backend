@@ -32,6 +32,13 @@ pub(crate) fn soft(hb: web::Data<Handlebars>, soft: Software) -> HttpResponse {
     })).response()
 }
 
+pub(crate) fn cart(hb: web::Data<Handlebars>, cart_list: Vec<Software>) -> HttpResponse {
+    hb.render("cart", &json!({
+        "parent": "layout",
+        "cart_list": cart_list
+    })).response()
+}
+
 pub(crate) fn not_found(hb: web::Data<Handlebars<'_>>) -> HttpResponse {
     match hb.render("404", &json!({
         "parent": "layout"

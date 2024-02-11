@@ -19,7 +19,7 @@ input[type="search"] {
     align-items: center;
 }
 
-button[type="submit"] {
+button {
     padding: 10px 20px;
     background-color: #333;
     color: #fff;
@@ -29,7 +29,7 @@ button[type="submit"] {
     cursor: pointer;
 }
 
-button[type="submit"]:hover {
+button:hover {
     background-color: #555;
 }
 
@@ -172,4 +172,28 @@ main {
     padding: 5px 10px;
     background-color: #f0f0f0;
     border-radius: 5px;
+  }
+
+  .cart-button {
+    display: flex;
+    align-items: center; 
+  }
+
+  aside {
+    display: flex;
+    padding: 20px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  aside form {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  aside * {
+    margin-bottom: 10px;
   }

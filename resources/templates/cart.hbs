@@ -1,5 +1,5 @@
 {{#*inline "page"}}
-<section>
+{{!-- <section>f
     <p class="description">Мощное программное обеспечение для вашего сервера. Интуитивный интерфейс, высокая
         производительность, надежность и безопасность. Поддержка экспертов. Обеспечьте успех своего бизнеса с нами!</p>
 </section>
@@ -8,7 +8,6 @@
         <input type="search" name="q" placeholder="Поиск" value="{{search_q}}">
         <button type="submit">Найти</button>
     </form>
-    <button class="cart-button" onclick="location.href='/cart'">Корзина</button>
 </div>
 <section class="software-layout">
     {{#each software_list}}
@@ -24,5 +23,35 @@
     </div>
     {{/each}}
 </section>
+{{/inline}} based on this example, i need cart page--}}
+{{#if cart_list}}
+<h2>Корзина</h2>
+<section class="software-layout">
+    {{#each cart_list}}
+    <div class="software-card">
+        <img class="software-logo" src="static/{{logo}}" />
+        <h3 class="software-name">{{name}}</h3>
+        <p class="software-version">Версия: {{version}}</p>
+        <ul class="software-tags">
+            {{#each tags}}<li>{{name}}</li>{{/each}}
+        </ul>
+        <p class="software-os">{{os}}</p>
+        <a href="/soft/{{id}}">Подробнее</a>
+    </div>
+    {{/each}}
+    <aside>
+        <form action="/cart" method="POST">
+            <input type="search" name="ssh_address" placeholder="Адрес сервера" required/>
+            <input type="search" name="ssh_password" placeholder="Пароль" required/>
+            <button type="submit" disabled>Оформить заказ</button>
+            <button type="submit" formaction="/cart" formmethod="DELETE" disabled>Очистить корзину</button>
+        </form>
+    </aside>
+</section>
+
+
+{{else}}
+<p>Корзина пуста</p>
+{{/if}}
 {{/inline}}
 {{> (lookup this "parent")}}

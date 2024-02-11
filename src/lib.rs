@@ -21,6 +21,9 @@ pub fn init_handlebars() -> Handlebars<'static> {
         .register_template_file("soft", "resources/templates/soft.hbs")
         .expect(msg);
     handlebars
+        .register_template_file("cart", "resources/templates/cart.hbs")
+        .expect(msg);
+    handlebars
 }
 
 #[derive(Deserialize)]
@@ -48,4 +51,10 @@ async fn soft(hb: web::Data<Handlebars<'_>>, path: web::Path<(i32,)>) -> impl Re
         None => view::not_found(hb)
     };
     answ
+}
+
+#[get("/cart")]
+async fn cart(hb: web::Data<Handlebars<'_>>) -> impl Responder {
+    let cart_list = model::get_cart_list();
+    view::cart(hb, cart_list)
 }

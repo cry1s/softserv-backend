@@ -121,3 +121,10 @@ pub(crate) fn get_soft_by_id(id: i32) -> Option<Software> {
         .filter(|soft| soft.id == id)
         .next()
 }
+
+pub(crate) fn get_cart_list() -> Vec<Software> {
+    get_all_soft()
+        .into_iter()
+        .filter(|soft| soft.id % 2 == 0)
+        .collect()
+}
